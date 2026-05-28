@@ -8,7 +8,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -47,7 +47,7 @@ model ApiKey {
   userId       String
   user         User      @relation(fields: [userId], references: [id])
   provider     String
-  encryptedKey String
+  encryptedKey String @db.Text
   iv           String
   last4        String
   label        String?
@@ -63,7 +63,7 @@ model UserSettings {
   id        String   @id @default(uuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
-  settings  String   @default("{}")
+  settings  String   @default("{}") @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -95,7 +95,7 @@ model CoverLetter {
   id        String   @id @default(uuid())
   profileId String
   title     String
-  content   String
+  content   String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   profile   Profile  @relation(fields: [profileId], references: [id])
@@ -105,7 +105,7 @@ model CoverLetter {
 model File {
   id         String   @id @default(uuid())
   fileName   String
-  filePath   String
+  filePath   String   @db.VarChar(2048)
   fileType   String
   uploadedAt DateTime @default(now())
   Resume     Resume?
@@ -143,7 +143,7 @@ model Summary {
   id            String         @id @default(uuid())
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
-  content       String
+  content       String         @db.Text
   ResumeSection ResumeSection? @relation
 }
 
@@ -157,7 +157,7 @@ model WorkExperience {
   jobTitle        JobTitle       @relation(fields: [jobTitleId], references: [id])
   startDate       DateTime
   endDate         DateTime?
-  description     String
+  description     String         @db.Text
   locationId      String
   location        Location       @relation(fields: [locationId], references: [id])
   resumeSectionId String?
@@ -173,7 +173,7 @@ model Education {
   fieldOfStudy    String
   startDate       DateTime
   endDate         DateTime?
-  description     String?
+  description     String?        @db.Text
   locationId      String
   location        Location       @relation(fields: [locationId], references: [id])
   resumeSectionId String?
@@ -196,7 +196,7 @@ model OtherSection {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
   title           String
-  content         String
+  content         String         @db.Text
   ResumeSection   ResumeSection? @relation(fields: [resumeSectionId], references: [id])
   resumeSectionId String?
 }
@@ -283,7 +283,7 @@ model Job {
   userId      String
   User        User        @relation(fields: [userId], references: [id])
   jobUrl      String?
-  description String
+  description String      @db.Text
   jobType     String
   createdAt   DateTime
   applied     Boolean     @default(false)
@@ -312,7 +312,7 @@ model Job {
   automationId    String?
   automation      Automation? @relation(fields: [automationId], references: [id], onDelete: SetNull)
   matchScore      Int?
-  matchData       String?
+  matchData       String?   @db.Text
   discoveryStatus String?
   discoveredAt    DateTime?
 
@@ -324,7 +324,7 @@ model ActivityType {
   id          String   @id @default(uuid())
   label       String
   value       String
-  description String?
+  description String? @db.Text
   createdBy   String // userId
   user        User     @relation(fields: [createdBy], references: [id])
   createdAt   DateTime @default(now())
@@ -344,7 +344,7 @@ model Activity {
   startTime    DateTime
   endTime      DateTime?
   duration     Int?
-  description  String?
+  description  String?  @db.Text
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
@@ -361,7 +361,7 @@ model Task {
   user   User   @relation(fields: [userId], references: [id])
 
   title           String
-  description     String?
+  description     String?   @db.Text
   status          String    @default("in-progress")
   priority        Int       @default(5)
   percentComplete Int       @default(0)
@@ -388,7 +388,7 @@ model Automation {
 
   name           String
   jobBoard       String
-  keywords       String
+  keywords       String   @db.Text
   location       String
   resumeId       String
   resume         Resume @relation(fields: [resumeId], references: [id])
@@ -422,8 +422,8 @@ model AutomationRun {
   jobsSaved        Int @default(0)
 
   status        String  @default("running")
-  errorMessage  String?
-  blockedReason String?
+  errorMessage  String? @db.Text
+  blockedReason String? @db.Text
 
   startedAt   DateTime  @default(now())
   completedAt DateTime?
@@ -438,7 +438,7 @@ model Note {
   job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  content   String
+  content   String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -460,8 +460,8 @@ model Tag {
 
 model Question {
   id        String   @id @default(uuid())
-  question  String
-  answer    String?
+  question  String   @db.Text
+  answer    String?  @db.Text
   createdBy String
   user      User     @relation(fields: [createdBy], references: [id])
   tags      Tag[]

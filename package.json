@@ -7,6 +7,12 @@
     "build": "next build",
     "start": "next start -p 3737",
     "lint": "eslint .",
+    "db:compose-url": "node scripts/compose-database-url.cjs",
+    "db:studio": "node scripts/with-database-url.cjs studio",
+    "db:push": "node scripts/with-database-url.cjs db push",
+    "db:migrate": "node scripts/with-database-url.cjs migrate dev",
+    "db:migrate:deploy": "node scripts/with-database-url.cjs migrate deploy",
+    "db:generate": "node scripts/with-database-url.cjs generate",
     "test": "vitest run",
     "test:e2e": "npx playwright test",
     "test:watch": "vitest"

@@ -65,9 +65,10 @@ This project follows a [Code of Conduct](./CODE_OF_CONDUCT.md). By participating
    ```bash
    cp .env.example .env
    ```
-6. **Set up the database:**
+6. **Set up the database:** Create a MySQL database and configure `DATABASE_HOST`, `DATABASE_USER`, `DATABASE_NAME`, etc. (or `DATABASE_URL`) in `.env` — see `.env.example` — then run:
+
    ```bash
-   npx prisma migrate dev
+   npm run db:migrate
    ```
 7. **Start the development server:**
    ```bash
@@ -245,7 +246,7 @@ Key conventions:
 - **Naming:** PascalCase for components, camelCase for functions/variables, kebab-case for files.
 - **Types:** All types live in `src/models/*.model.ts`; Zod schemas in `src/models/*.schema.ts`.
 - **Server actions:** Always validate auth with `getCurrentUser()` and return via `handleError()`.
-- **Database:** Run `npx prisma generate` then `npx prisma migrate dev` after any schema change.
+- **Database:** Run `npm run db:generate` then `npm run db:migrate` after any schema change (or set `DATABASE_URL` and use plain `npx prisma ...`).
 - **Files over 200 lines:** Break into a directory with focused modules and a barrel `index.ts`.
 - **Comments:** Minimal; explain "why" not "what"; no decorative separator comments.
 

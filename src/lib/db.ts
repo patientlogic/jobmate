@@ -1,4 +1,7 @@
+import { ensureDatabaseUrl } from "@/lib/composeDatabaseUrl";
 import { PrismaClient } from "@prisma/client";
+
+ensureDatabaseUrl();
 
 const prismaClientSingleton = () => {
   return new PrismaClient();
