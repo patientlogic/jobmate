@@ -7,6 +7,11 @@ import { getCurrentUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { z } from "zod";
 
+type ActivityDurationSum = {
+  activityTypeId: string;
+  _sum: { duration: number | null };
+};
+
 export const getAllActivityTypes = async (): Promise<any | undefined> => {
   try {
     const user = await getCurrentUser();
@@ -325,8 +330,11 @@ export const getActivityTypeList = async (
       }),
     ]);
 
-    const durationMap = new Map(
-      durationSums.map((d) => [d.activityTypeId, d._sum.duration ?? 0]),
+    const durationMap = new Map<string, number>(
+      (durationSums as ActivityDurationSum[]).map((d) => [
+        d.activityTypeId,
+        d._sum.duration ?? 0,
+      ]),
     );
 
     // Fetch all activity types with counts, then sort by total duration

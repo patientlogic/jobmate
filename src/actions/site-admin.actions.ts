@@ -20,6 +20,11 @@ function assertSiteAdmin(viewerRole: UserRole): void {
   }
 }
 
+type JobUserCount = {
+  userId: string;
+  _count: { _all: number };
+};
+
 export async function listJobBidders(): Promise<JobBidderSummary[]> {
   const viewer = await getViewerContext();
   if (!viewer) {
@@ -33,7 +38,7 @@ export async function listJobBidders(): Promise<JobBidderSummary[]> {
     _count: { _all: true },
   });
   const appliedMap = new Map(
-    appliedByUser.map((r) => [r.userId, r._count._all]),
+    (appliedByUser as JobUserCount[]).map((r) => [r.userId, r._count._all]),
   );
 
   const totalsByUser = await prisma.job.groupBy({
@@ -41,7 +46,7 @@ export async function listJobBidders(): Promise<JobBidderSummary[]> {
     _count: { _all: true },
   });
   const totalMap = new Map(
-    totalsByUser.map((r) => [r.userId, r._count._all]),
+    (totalsByUser as JobUserCount[]).map((r) => [r.userId, r._count._all]),
   );
 
   const users = await prisma.user.findMany({
