@@ -1,4 +1,4 @@
-import { ensureDatabaseUrl } from "@/lib/composeDatabaseUrl";
+import { ensureDatabaseUrl } from "../../config/database-url.js";
 import { PrismaClient } from "@prisma/client";
 
 ensureDatabaseUrl();

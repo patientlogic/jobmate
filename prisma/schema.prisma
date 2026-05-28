@@ -63,7 +63,7 @@ model UserSettings {
   id        String   @id @default(uuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
-  settings  String   @default("{}") @db.Text
+  settings  String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -1,6 +1,9 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import path from "path";
+import { getAppUrl } from "./config/getAppUrl";
+
+const appUrl = getAppUrl();
 
 export default defineConfig({
   plugins: [react()],
@@ -33,7 +36,7 @@ export default defineConfig({
     environment: "jsdom",
     environmentOptions: {
       jsdom: {
-        url: "http://localhost:3737",
+        url: appUrl,
       },
     },
     setupFiles: ["./vitest.polyfills.ts", "./vitest.setup.ts"],
