@@ -32,7 +32,7 @@ async function Header() {
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <nav className="grid gap-6 text-lg font-medium">
             <SheetClose asChild>
-              <AppLogo size="sm" showTile={false} className="justify-start" />
+              <AppLogo size="sm" className="justify-start" />
             </SheetClose>
             {SIDEBAR_LINKS.map((item) => {
               // Only show dev-only items in development mode
@@ -55,7 +55,7 @@ async function Header() {
         </SheetContent>
       </Sheet>
       <div className="flex items-center gap-2.5">
-        <AppLogo size="sm" showTile={false} />
+        <AppLogo size="sm" />
         <h1 className="font-semibold">{APP_NAME} - Job Search Assistant</h1>
       </div>
       <div className="relative ml-auto flex-1 md:grow-0">

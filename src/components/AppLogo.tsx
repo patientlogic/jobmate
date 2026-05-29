@@ -3,19 +3,19 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@config/app-name";
 
-const LOGO_SRC = "/logo_transparent.png";
+const LOGO_SRC = "/logo.png";
 
 const sizeStyles = {
   sm: {
-    tile: "h-11 w-11 md:h-10 md:w-10",
-    image: "h-9 w-9 md:h-8 md:w-8",
+    tile: "h-11 w-11 md:h-10 md:w-10 overflow-hidden",
+    image: "h-11 w-11 md:h-10 md:w-10 object-fill",
     dimensions: 40,
-    tileRounded: "rounded-full",
+    tileRounded: "rounded-sm",
   },
   md: {
-    tile: "h-24 w-24",
-    image: "h-20 w-20",
-    dimensions: 80,
+    tile: "h-24 w-24 overflow-hidden",
+    image: "h-24 w-24 object-fill",
+    dimensions: 96,
     tileRounded: "rounded-2xl",
   },
 } as const;
@@ -26,20 +26,22 @@ type AppLogoProps = {
   showTile?: boolean;
   className?: string;
   priority?: boolean;
+  transparent?: boolean;
 };
 
 export function AppLogo({
   size = "sm",
   href = "/",
-  showTile = size === "md",
+  showTile = true,
   className,
   priority = false,
+  transparent = false,
 }: AppLogoProps) {
   const styles = sizeStyles[size];
 
   const logo = (
     <Image
-      src={LOGO_SRC}
+      src={transparent ? "/logo_transparent.png" : LOGO_SRC}
       alt={APP_NAME}
       width={styles.dimensions}
       height={styles.dimensions}
