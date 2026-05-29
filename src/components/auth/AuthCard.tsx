@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import SigninForm from "./SigninForm";
 import SignupForm from "./SignupForm";
+import { AppLogo } from "@/components/AppLogo";
+import { APP_NAME } from "@config/app-name";
 
 type AuthMode = "signin" | "signup";
 
@@ -15,10 +17,10 @@ export default function AuthCard({ mode }: AuthCardProps) {
 
   return (
     <div className="mx-auto w-full max-w-md px-4">
-      {/* App branding */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">JobMate</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+      <div className="mb-8 flex flex-col items-center text-center">
+        <AppLogo size="md" className="mb-4" priority />
+        <h1 className="text-2xl font-semibold tracking-tight">{APP_NAME}</h1>
+        <p className="mt-1 max-w-xs text-sm text-muted-foreground">
           Track your job search, powered by AI
         </p>
       </div>

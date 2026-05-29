@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PanelLeft, Briefcase } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 
 import { Button } from "./ui/button";
 import {
@@ -13,6 +13,8 @@ import { SIDEBAR_LINKS } from "@/lib/constants";
 import { signOut } from "@/auth";
 import { getCurrentUser } from "@/utils/user.utils";
 import { ProfileDropdown } from "./ProfileDropdown";
+import { AppLogo } from "./AppLogo";
+import { APP_NAME } from "@config/app-name";
 
 async function Header() {
   // const session = await auth();
@@ -30,13 +32,7 @@ async function Header() {
           <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
           <nav className="grid gap-6 text-lg font-medium">
             <SheetClose asChild>
-              <Link
-                href="/"
-                className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-              >
-                <Briefcase className="h-5 w-5 transition-all group-hover:scale-110" />
-                <span className="sr-only">JobMate</span>
-              </Link>
+              <AppLogo size="sm" showTile={false} className="justify-start" />
             </SheetClose>
             {SIDEBAR_LINKS.map((item) => {
               // Only show dev-only items in development mode
@@ -58,7 +54,10 @@ async function Header() {
           </nav>
         </SheetContent>
       </Sheet>
-      <h1 className="font-semibold">JobMate - Job Search Assistant</h1>
+      <div className="flex items-center gap-2.5">
+        <AppLogo size="sm" showTile={false} />
+        <h1 className="font-semibold">{APP_NAME} - Job Search Assistant</h1>
+      </div>
       <div className="relative ml-auto flex-1 md:grow-0">
         {/* <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input

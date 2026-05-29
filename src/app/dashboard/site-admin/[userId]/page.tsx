@@ -17,7 +17,7 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   try {
     const profile = await getBidderProfileForAdmin(userId);
     return {
-      title: profile ? `Monitor ${profile.name} | JobMate` : "Bidder monitoring",
+      title: profile ? `Monitor ${profile.name}` : "Bidder monitoring",
     };
   } catch {
     return { title: "Bidder monitoring" };

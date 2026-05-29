@@ -1,11 +1,15 @@
 import { test, expect } from "@playwright/test";
+import { getAppUrl } from "../config/getAppUrl";
+import { APP_NAME } from "../config/app-name";
+
+getAppUrl();
 
 test("Signin page has title", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page).toHaveTitle("Sign In | JobMate");
+  await expect(page).toHaveTitle(`Sign In | ${APP_NAME}`);
 
-  await expect(page.getByRole("heading", { name: "JobMate" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: APP_NAME })).toBeVisible();
 
   await expect(
     page.getByRole("heading", { name: "Welcome back" }),

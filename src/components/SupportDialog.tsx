@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "./ui/dialog";
 import packageJson from "../../package.json";
+import { APP_NAME } from "@config/app-name";
 
 interface SupportDialogProps {
   open: boolean;
@@ -42,7 +43,7 @@ export function SupportDialog({ open, onOpenChange }: SupportDialogProps) {
           <div className="space-y-2">
             <h3 className="text-sm font-semibold">Copyright</h3>
             <p className="text-sm text-muted-foreground">
-              © {currentYear} JobMate. All rights reserved.
+              © {currentYear} {APP_NAME}. All rights reserved.
             </p>
             <a
               href="https://JobMate.ca/"
