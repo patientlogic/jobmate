@@ -23,6 +23,9 @@ export const authConfig = {
     error: "/signin",
   },
   secret: process.env.AUTH_SECRET,
+  // Required for `next start` and deployments without a trusted reverse-proxy Host header.
+  // Set AUTH_TRUST_HOST=false to disable (e.g. strict production behind a known proxy).
+  trustHost: process.env.AUTH_TRUST_HOST !== "false",
   callbacks: {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
