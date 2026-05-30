@@ -13,8 +13,10 @@ vi.mock("@prisma/client", () => {
   const mPrismaClient = {
     jobTitle: {
       findMany: vi.fn(),
+      findFirst: vi.fn(),
       count: vi.fn(),
-      upsert: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
       delete: vi.fn(),
     },
     workExperience: {
@@ -43,19 +45,23 @@ describe("Job Title Actions", () => {
   });
 
   describe("getAllJobTitles", () => {
-    it("should return all job titles for authenticated user", async () => {
+    it("should return deduped job titles preferring the current user", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
       const mockTitles = [
-        { id: "title-1", label: "Developer", value: "developer" },
-        { id: "title-2", label: "Designer", value: "designer" },
+        { id: "title-1", label: "Developer", value: "developer", createdBy: "other-user" },
+        { id: "title-2", label: "Designer", value: "designer", createdBy: mockUser.id },
+        { id: "title-3", label: "My Developer", value: "developer", createdBy: mockUser.id },
       ];
       (prisma.jobTitle.findMany as any).mockResolvedValue(mockTitles);
 
       const result = await getAllJobTitles();
 
-      expect(result).toEqual(mockTitles);
+      expect(result).toEqual([
+        { id: "title-3", label: "My Developer", value: "developer", createdBy: mockUser.id },
+        { id: "title-2", label: "Designer", value: "designer", createdBy: mockUser.id },
+      ]);
       expect(prisma.jobTitle.findMany).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
+        orderBy: { label: "asc" },
       });
     });
 
@@ -169,7 +175,7 @@ describe("Job Title Actions", () => {
   });
 
   describe("createJobTitle", () => {
-    it("should upsert a job title successfully", async () => {
+    it("should create a job title successfully", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
       const mockTitle = {
         id: "title-1",
@@ -177,20 +183,39 @@ describe("Job Title Actions", () => {
         value: "senior developer",
         createdBy: mockUser.id,
       };
-      (prisma.jobTitle.upsert as any).mockResolvedValue(mockTitle);
+      (prisma.jobTitle.findFirst as any)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
+      (prisma.jobTitle.create as any).mockResolvedValue(mockTitle);
 
       const result = await createJobTitle("Senior Developer");
 
-      expect(result).toEqual(mockTitle);
-      expect(prisma.jobTitle.upsert).toHaveBeenCalledWith({
-        where: { value_createdBy: { value: "senior developer", createdBy: mockUser.id } },
-        update: { label: "Senior Developer" },
-        create: {
+      expect(result).toEqual({ success: true, data: mockTitle });
+      expect(prisma.jobTitle.create).toHaveBeenCalledWith({
+        data: {
           label: "Senior Developer",
           value: "senior developer",
           createdBy: mockUser.id,
         },
       });
+    });
+
+    it("should reuse an existing shared job title", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      const sharedTitle = {
+        id: "title-shared",
+        label: "Developer",
+        value: "developer",
+        createdBy: "other-user",
+      };
+      (prisma.jobTitle.findFirst as any)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(sharedTitle);
+
+      const result = await createJobTitle("Developer");
+
+      expect(result).toEqual({ success: true, data: sharedTitle });
+      expect(prisma.jobTitle.create).not.toHaveBeenCalled();
     });
 
     it("should return error for unauthenticated user", async () => {
@@ -199,12 +224,12 @@ describe("Job Title Actions", () => {
       const result = await createJobTitle("Developer");
 
       expect(result).toEqual({ success: false, message: "Not authenticated" });
-      expect(prisma.jobTitle.upsert).not.toHaveBeenCalled();
+      expect(prisma.jobTitle.create).not.toHaveBeenCalled();
     });
 
     it("should handle unexpected errors", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
-      (prisma.jobTitle.upsert as any).mockRejectedValue(
+      (prisma.jobTitle.findFirst as any).mockRejectedValue(
         new Error("Upsert failed")
       );
 

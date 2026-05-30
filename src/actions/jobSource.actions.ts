@@ -4,6 +4,36 @@ import { handleError } from "@/lib/utils";
 import { getCurrentUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 
+async function fetchAllJobSources() {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const sources = await prisma.jobSource.findMany({
+    orderBy: { label: "asc" },
+  });
+
+  const byValue = new Map<string, (typeof sources)[number]>();
+  for (const source of sources) {
+    const existing = byValue.get(source.value);
+    if (!existing || source.createdBy === user.id) {
+      byValue.set(source.value, source);
+    }
+  }
+
+  return Array.from(byValue.values());
+}
+
+export const getAllJobSources = async (): Promise<any | undefined> => {
+  try {
+    return await fetchAllJobSources();
+  } catch (error) {
+    const msg = "Failed to fetch job source list. ";
+    return handleError(error, msg);
+  }
+};
+
 export const getJobSourceList = async (
   page: number = 1,
   limit: number = APP_CONSTANTS.RECORDS_PER_PAGE,

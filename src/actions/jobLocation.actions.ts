@@ -4,18 +4,30 @@ import { handleError } from "@/lib/utils";
 import { getCurrentUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 
+async function fetchAllJobLocations() {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const locations = await prisma.location.findMany({
+    orderBy: { label: "asc" },
+  });
+
+  const byValue = new Map<string, (typeof locations)[number]>();
+  for (const location of locations) {
+    const existing = byValue.get(location.value);
+    if (!existing || location.createdBy === user.id) {
+      byValue.set(location.value, location);
+    }
+  }
+
+  return Array.from(byValue.values());
+}
+
 export const getAllJobLocations = async (): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-    const list = await prisma.location.findMany({
-      where: {
-        createdBy: user.id,
-      },
-    });
-    return list;
+    return await fetchAllJobLocations();
   } catch (error) {
     const msg = "Failed to fetch job location list. ";
     return handleError(error, msg);

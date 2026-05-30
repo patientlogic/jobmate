@@ -26,14 +26,17 @@ async function MyJobs() {
       getAllTags(),
     ]);
   const companies = Array.isArray(companiesResult) ? companiesResult : [];
+  const jobTitles = Array.isArray(titles) ? titles : [];
+  const jobLocations = Array.isArray(locations) ? locations : [];
+  const jobSources = Array.isArray(sources) ? sources : [];
   return (
     <div className="col-span-3">
       <JobsContainer
         isAdmin={isAdmin}
         companies={companies}
-        titles={titles}
-        locations={locations}
-        sources={sources}
+        titles={jobTitles}
+        locations={jobLocations}
+        sources={jobSources}
         statuses={statuses}
         tags={tags ?? []}
       />

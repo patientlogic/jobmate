@@ -44,19 +44,23 @@ describe("Job Location Actions", () => {
   });
 
   describe("getAllJobLocations", () => {
-    it("should return job locations for authenticated user", async () => {
+    it("should return deduped job locations preferring the current user", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
       const mockLocations = [
-        { id: "loc-1", label: "New York", value: "new york" },
-        { id: "loc-2", label: "Remote", value: "remote" },
+        { id: "loc-1", label: "New York", value: "new york", createdBy: "other-user" },
+        { id: "loc-2", label: "Remote", value: "remote", createdBy: mockUser.id },
+        { id: "loc-3", label: "My New York", value: "new york", createdBy: mockUser.id },
       ];
       (prisma.location.findMany as any).mockResolvedValue(mockLocations);
 
       const result = await getAllJobLocations();
 
-      expect(result).toEqual(mockLocations);
+      expect(result).toEqual([
+        { id: "loc-3", label: "My New York", value: "new york", createdBy: mockUser.id },
+        { id: "loc-2", label: "Remote", value: "remote", createdBy: mockUser.id },
+      ]);
       expect(prisma.location.findMany).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
+        orderBy: { label: "asc" },
       });
     });
 

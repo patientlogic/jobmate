@@ -5,6 +5,7 @@ import { AddJobFormSchema } from "@/models/addJobForm.schema";
 import { JOB_TYPES, JobStatus } from "@/models/job.model";
 import { getCurrentUser, getViewerContext } from "@/utils/user.utils";
 import { requireSubjectUserId, resolveScopedUserId } from "@/lib/admin-scope";
+import { getAllJobSources } from "@/actions/jobSource.actions";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -19,23 +20,7 @@ export const getStatusList = async (): Promise<any | undefined> => {
   }
 };
 
-export const getJobSourceList = async (): Promise<any | undefined> => {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-    const list = await prisma.jobSource.findMany({
-      where: {
-        createdBy: user.id,
-      },
-    });
-    return list;
-  } catch (error) {
-    const msg = "Failed to fetch job source list. ";
-    return handleError(error, msg);
-  }
-};
+export const getJobSourceList = getAllJobSources;
 
 export async function resolveJobOwnerId(
   jobId: string,
@@ -308,21 +293,33 @@ export const createLocation = async (
       throw new Error("Not authenticated");
     }
 
-    const value = label.trim().toLowerCase();
+    const trimmedLabel = label.trim();
+    const value = trimmedLabel.toLowerCase();
 
     if (!value) {
       throw new Error("Please provide location name");
     }
 
-    const existing = await prisma.location.findFirst({
+    const existingForUser = await prisma.location.findFirst({
       where: { value, createdBy: user.id },
     });
-    if (existing) {
-      return { data: existing, success: true };
+    if (existingForUser) {
+      const updated = await prisma.location.update({
+        where: { id: existingForUser.id },
+        data: { label: trimmedLabel },
+      });
+      return { data: updated, success: true };
+    }
+
+    const sharedLocation = await prisma.location.findFirst({
+      where: { value },
+    });
+    if (sharedLocation) {
+      return { data: sharedLocation, success: true };
     }
 
     const location = await prisma.location.create({
-      data: { label, value, createdBy: user.id },
+      data: { label: trimmedLabel, value, createdBy: user.id },
     });
 
     return { data: location, success: true };
@@ -342,21 +339,33 @@ export const createJobSource = async (
       throw new Error("Not authenticated");
     }
 
-    const value = label.trim().toLowerCase();
+    const trimmedLabel = label.trim();
+    const value = trimmedLabel.toLowerCase();
 
     if (!value) {
       throw new Error("Please provide job source name");
     }
 
-    const existing = await prisma.jobSource.findFirst({
+    const existingForUser = await prisma.jobSource.findFirst({
       where: { value, createdBy: user.id },
     });
-    if (existing) {
-      return { data: existing, success: true };
+    if (existingForUser) {
+      const updated = await prisma.jobSource.update({
+        where: { id: existingForUser.id },
+        data: { label: trimmedLabel },
+      });
+      return { data: updated, success: true };
+    }
+
+    const sharedSource = await prisma.jobSource.findFirst({
+      where: { value },
+    });
+    if (sharedSource) {
+      return { data: sharedSource, success: true };
     }
 
     const jobSource = await prisma.jobSource.create({
-      data: { label, value, createdBy: user.id },
+      data: { label: trimmedLabel, value, createdBy: user.id },
     });
 
     return { data: jobSource, success: true };

@@ -4,18 +4,30 @@ import { handleError } from "@/lib/utils";
 import { getCurrentUser } from "@/utils/user.utils";
 import { APP_CONSTANTS } from "@/lib/constants";
 
+async function fetchAllJobTitles() {
+  const user = await getCurrentUser();
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const titles = await prisma.jobTitle.findMany({
+    orderBy: { label: "asc" },
+  });
+
+  const byValue = new Map<string, (typeof titles)[number]>();
+  for (const title of titles) {
+    const existing = byValue.get(title.value);
+    if (!existing || title.createdBy === user.id) {
+      byValue.set(title.value, title);
+    }
+  }
+
+  return Array.from(byValue.values());
+}
+
 export const getAllJobTitles = async (): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-    const list = await prisma.jobTitle.findMany({
-      where: {
-        createdBy: user?.id,
-      },
-    });
-    return list;
+    return await fetchAllJobTitles();
   } catch (error) {
     const msg = "Failed to fetch job title list. ";
     return handleError(error, msg);
@@ -80,7 +92,7 @@ export const getJobTitleList = async (
 };
 
 export const createJobTitle = async (
-  label: string
+  label: string,
 ): Promise<any | undefined> => {
   try {
     const user = await getCurrentUser();
@@ -89,15 +101,38 @@ export const createJobTitle = async (
       throw new Error("Not authenticated");
     }
 
-    const value = label.trim().toLowerCase();
+    const trimmedLabel = label.trim();
+    const value = trimmedLabel.toLowerCase();
 
-    const upsertedTitle = await prisma.jobTitle.upsert({
-      where: { value_createdBy: { value, createdBy: user.id } },
-      update: { label },
-      create: { label, value, createdBy: user.id },
+    if (!value) {
+      throw new Error("Please provide job title");
+    }
+
+    const existingForUser = await prisma.jobTitle.findFirst({
+      where: { value, createdBy: user.id },
     });
 
-    return upsertedTitle;
+    if (existingForUser) {
+      const updated = await prisma.jobTitle.update({
+        where: { id: existingForUser.id },
+        data: { label: trimmedLabel },
+      });
+      return { success: true, data: updated };
+    }
+
+    const sharedTitle = await prisma.jobTitle.findFirst({
+      where: { value },
+    });
+
+    if (sharedTitle) {
+      return { success: true, data: sharedTitle };
+    }
+
+    const created = await prisma.jobTitle.create({
+      data: { label: trimmedLabel, value, createdBy: user.id },
+    });
+
+    return { success: true, data: created };
   } catch (error) {
     const msg = "Failed to create job title. ";
     return handleError(error, msg);

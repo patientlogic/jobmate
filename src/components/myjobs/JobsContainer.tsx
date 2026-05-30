@@ -233,10 +233,7 @@ function JobsContainer({
   );
 
   const reloadJobs = useCallback(async () => {
-    await loadJobs(1, undefined, searchTerm || undefined);
-    if (filterKey) {
-      setFilterKey(undefined);
-    }
+    await loadJobs(1, filterKey, searchTerm || undefined);
   }, [loadJobs, filterKey, searchTerm]);
 
   const onDeleteJob = async (jobId: string) => {
@@ -517,6 +514,7 @@ function JobsContainer({
               editJob={editJob}
               resetEditJob={resetEditJob}
               subjectUserId={subjectUserId}
+              onJobSaved={reloadJobs}
             />
           </div>
         </CardHeader>

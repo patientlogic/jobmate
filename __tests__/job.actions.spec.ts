@@ -103,17 +103,24 @@ describe("jobActions", () => {
     });
   });
   describe("getJobSourceList", () => {
-    it("should return job source list on successful query", async () => {
+    it("should return deduped job sources preferring the current user", async () => {
+      (getCurrentUser as any).mockResolvedValue(mockUser);
       const mockData = [
-        { id: "1", label: "Source 1", value: "source1" },
-        { id: "2", label: "Source 2", value: "source2" },
+        { id: "1", label: "Indeed", value: "indeed", createdBy: "other-user" },
+        { id: "2", label: "LinkedIn", value: "linkedin", createdBy: mockUser.id },
+        { id: "3", label: "My Indeed", value: "indeed", createdBy: mockUser.id },
       ];
       (prisma.jobSource.findMany as any).mockResolvedValue(mockData);
 
       const result = await getJobSourceList();
 
-      expect(result).toEqual(mockData);
-      expect(prisma.jobSource.findMany).toHaveBeenCalledTimes(1);
+      expect(result).toEqual([
+        { id: "3", label: "My Indeed", value: "indeed", createdBy: mockUser.id },
+        { id: "2", label: "LinkedIn", value: "linkedin", createdBy: mockUser.id },
+      ]);
+      expect(prisma.jobSource.findMany).toHaveBeenCalledWith({
+        orderBy: { label: "asc" },
+      });
     });
 
     it("should returns failure response on error", async () => {
@@ -716,12 +723,15 @@ describe("jobActions", () => {
     it("should create with valid input", async () => {
       const label = "New Location";
       const mockLocation = {
+        id: "loc-1",
         label: "New Location",
         value: "new location",
         createdBy: mockUser.id,
       };
       (getCurrentUser as any).mockResolvedValue(mockUser);
-      (prisma.location.findFirst as any).mockResolvedValue(null);
+      (prisma.location.findFirst as any)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(null);
       (prisma.location.create as any).mockResolvedValue(mockLocation);
 
       const result = await createLocation(label);
@@ -731,16 +741,33 @@ describe("jobActions", () => {
         data: mockLocation,
       });
       expect(result).toStrictEqual({
-        data: {
-          ...mockLocation,
-        },
+        data: mockLocation,
         success: true,
       });
     });
+    it("should reuse an existing shared location", async () => {
+      const sharedLocation = {
+        id: "loc-shared",
+        label: "Remote",
+        value: "remote",
+        createdBy: "other-user",
+      };
+      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (prisma.location.findFirst as any)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(sharedLocation);
+
+      const result = await createLocation("Remote");
+
+      expect(result).toStrictEqual({
+        data: sharedLocation,
+        success: true,
+      });
+      expect(prisma.location.create).not.toHaveBeenCalled();
+    });
     it("should handle unexpected errors", async () => {
       (getCurrentUser as any).mockResolvedValue(mockUser);
-      (prisma.location.findFirst as any).mockResolvedValue(null);
-      (prisma.location.create as any).mockRejectedValue(
+      (prisma.location.findFirst as any).mockRejectedValue(
         new Error("Unexpected error"),
       );
 

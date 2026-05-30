@@ -64,32 +64,69 @@ export function Combobox({
           }
           response = res.data;
           break;
-        case "title":
-          response = await createJobTitle(trimmed);
-          break;
-        case "location":
-          const { data, success, message } = await createLocation(trimmed);
-          if (!success) {
+        case "title": {
+          const titleRes = await createJobTitle(trimmed);
+          if (titleRes?.success === false) {
             toast({
               variant: "destructive",
               title: "Error!",
-              description: message,
+              description: titleRes.message,
             });
+            return;
           }
-          response = data;
+          response = titleRes?.data ?? titleRes;
+          if (!response?.id) {
+            toast({
+              variant: "destructive",
+              title: "Error!",
+              description: "Failed to create job title.",
+            });
+            return;
+          }
           break;
-        case "source":
+        }
+        case "location": {
+          const locationRes = await createLocation(trimmed);
+          if (locationRes?.success === false) {
+            toast({
+              variant: "destructive",
+              title: "Error!",
+              description: locationRes.message,
+            });
+            return;
+          }
+          response = locationRes?.data;
+          if (!response?.id) {
+            toast({
+              variant: "destructive",
+              title: "Error!",
+              description: "Failed to create job location.",
+            });
+            return;
+          }
+          break;
+        }
+        case "source": {
           const sourceRes = await createJobSource(trimmed);
-          if (!sourceRes.success) {
+          if (sourceRes?.success === false) {
             toast({
               variant: "destructive",
               title: "Error!",
               description: sourceRes.message,
             });
+            return;
           }
-          response = sourceRes.data;
-          if (!sourceRes.success) return;
+          response = sourceRes?.data;
+          if (!response?.id) {
+            toast({
+              variant: "destructive",
+              title: "Error!",
+              description: "Failed to create job source.",
+            });
+            return;
+          }
           break;
+        }
         case "activityType":
           response = await createActivityType(trimmed);
           break;

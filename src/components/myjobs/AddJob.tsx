@@ -43,7 +43,6 @@ import { APP_CONSTANTS } from "@/lib/constants";
 import TiptapEditor from "../TiptapEditor";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
-import { useRouter } from "next/navigation";
 import { Combobox } from "../ComboBox";
 import { NotesCollapsibleSection } from "./NotesCollapsibleSection";
 import { CoverLetter, Resume } from "@/models/profile.model";
@@ -52,7 +51,6 @@ import { getResumeList } from "@/actions/profile.actions";
 import { getCoverLetterList } from "@/actions/coverLetter.actions";
 import { getAllCompanies } from "@/actions/company.actions";
 import { TagInput } from "./TagInput";
-import { buildMyJobsPath } from "./JobsSubjectContext";
 
 type AddJobProps = {
   jobStatuses: JobStatus[];
@@ -64,6 +62,7 @@ type AddJobProps = {
   editJob?: JobResponse | null;
   resetEditJob: () => void;
   subjectUserId?: string;
+  onJobSaved?: () => void;
 };
 
 export function AddJob({
@@ -76,11 +75,14 @@ export function AddJob({
   editJob,
   resetEditJob,
   subjectUserId,
+  onJobSaved,
 }: AddJobProps) {
-  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
   const [companyOptions, setCompanyOptions] = useState<Company[]>(companies);
+  const [jobTitleOptions, setJobTitleOptions] = useState<JobTitle[]>(jobTitles);
+  const [locationOptions, setLocationOptions] = useState<JobLocation[]>(locations);
+  const [sourceOptions, setSourceOptions] = useState<JobSource[]>(jobSources);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags);
@@ -131,6 +133,18 @@ export function AddJob({
   useEffect(() => {
     setCompanyOptions(Array.isArray(companies) ? companies : []);
   }, [companies]);
+
+  useEffect(() => {
+    setJobTitleOptions(Array.isArray(jobTitles) ? jobTitles : []);
+  }, [jobTitles]);
+
+  useEffect(() => {
+    setLocationOptions(Array.isArray(locations) ? locations : []);
+  }, [locations]);
+
+  useEffect(() => {
+    setSourceOptions(Array.isArray(jobSources) ? jobSources : []);
+  }, [jobSources]);
 
   useEffect(() => {
     if (dialogOpen) {
@@ -202,14 +216,14 @@ export function AddJob({
         });
         return;
       }
-      router.push(buildMyJobsPath(subjectUserId));
-      router.refresh();
-    });
-    toast({
-      variant: "success",
-      description: `Job has been ${
-        editJob ? "updated" : "created"
-      } successfully`,
+      resetEditJob();
+      onJobSaved?.();
+      toast({
+        variant: "success",
+        description: `Job has been ${
+          editJob ? "updated" : "created"
+        } successfully`,
+      });
     });
   }
 
@@ -295,9 +309,10 @@ export function AddJob({
                         <FormLabel>Job Title</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={jobTitles}
+                            options={jobTitleOptions}
                             field={field}
                             creatable
+                            onOptionsChange={setJobTitleOptions}
                           />
                         </FormControl>
                         <FormMessage />
@@ -336,9 +351,10 @@ export function AddJob({
                         <FormLabel>Job Location</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={locations}
+                            options={locationOptions}
                             field={field}
                             creatable
+                            onOptionsChange={setLocationOptions}
                           />
                         </FormControl>
                         <FormMessage />
@@ -388,9 +404,10 @@ export function AddJob({
                       <FormItem className="flex flex-col">
                         <FormLabel>Job Source</FormLabel>
                         <Combobox
-                          options={jobSources}
+                          options={sourceOptions}
                           field={field}
                           creatable
+                          onOptionsChange={setSourceOptions}
                         />
                         <FormMessage />
                       </FormItem>
