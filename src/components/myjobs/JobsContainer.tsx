@@ -120,7 +120,10 @@ function JobsContainer({
   const [jobs, setJobs] = useState<JobResponse[]>([]);
   const [page, setPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
-  const [filterKey, setFilterKey] = useState<string>();
+  const [filterKey, setFilterKey] = useState<string | undefined>(() => {
+    const status = queryParams.get("status");
+    return status && status !== "none" ? status : undefined;
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [editJob, setEditJob] = useState(null);
   const [initialLoading, setInitialLoading] = useState(false);
@@ -147,6 +150,11 @@ function JobsContainer({
 
   const sourceLabel = sourceFilter
     ? sources.find((s) => s.value === sourceFilter)?.label
+    : null;
+
+  const statusLabel = filterKey
+    ? statuses.find((s) => s.value === filterKey)?.label ??
+      (filterKey === "PT" ? "Part-time" : filterKey)
     : null;
 
   const selectedUser =
@@ -207,17 +215,27 @@ function JobsContainer({
     router.push(pathname);
   };
 
+  const clearStatusFilter = () => {
+    const params = new URLSearchParams(queryParams.toString());
+    params.delete("status");
+    setFilterKey(undefined);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
+
   useEffect(() => {
     const cp = queryParams.get("company");
     const tp = queryParams.get("title");
     const lp = queryParams.get("location");
     const sp = queryParams.get("source");
     const ap = queryParams.get("applied") === "true";
+    const status = queryParams.get("status");
     setCompanyFilter(cp);
     setTitleFilter(tp);
     setLocationFilter(lp);
     setSourceFilter(sp);
     setAppliedFilter(ap);
+    setFilterKey(status && status !== "none" ? status : undefined);
   }, [queryParams]);
 
   const jobsPerPage = recordsPerPage;
@@ -321,8 +339,17 @@ function JobsContainer({
   };
 
   useEffect(() => {
-    (async () => await loadJobs(1))();
-  }, [loadJobs]);
+    (async () => await loadJobs(1, filterKey, searchTerm || undefined))();
+  }, [
+    loadJobs,
+    filterKey,
+    companyFilter,
+    appliedFilter,
+    titleFilter,
+    locationFilter,
+    sourceFilter,
+    subjectUserId,
+  ]);
 
   useEffect(() => {
     if (searchTerm !== "") {
@@ -371,13 +398,16 @@ function JobsContainer({
   ]);
 
   const onFilterChange = (filterBy: string) => {
+    const params = new URLSearchParams(queryParams.toString());
     if (filterBy === "none") {
+      params.delete("status");
       setFilterKey(undefined);
-      loadJobs(1, undefined, searchTerm || undefined);
     } else {
+      params.set("status", filterBy);
       setFilterKey(filterBy);
-      loadJobs(1, filterBy, searchTerm || undefined);
     }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
   };
 
   const downloadJobsList = async () => {
@@ -474,6 +504,15 @@ function JobsContainer({
                 <X className="h-3.5 w-3.5" />
               </button>
             )}
+            {statusLabel && (
+              <button
+                onClick={clearStatusFilter}
+                className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2.5 py-1 text-sm font-medium text-primary hover:bg-primary/20 transition-colors"
+              >
+                {statusLabel}
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
             <div className="relative flex-1 min-w-[140px] sm:flex-none">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -484,7 +523,7 @@ function JobsContainer({
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <Select value={filterKey} onValueChange={onFilterChange}>
+            <Select value={filterKey ?? "none"} onValueChange={onFilterChange}>
               <SelectTrigger className="w-[120px] h-8">
                 <ListFilter className="h-3.5 w-3.5" />
                 <SelectValue placeholder="Filter" />

@@ -30,6 +30,34 @@ type DashboardOverviewProps = {
   isAdmin?: boolean;
 };
 
+function buildJobsIndicatorLinks(
+  isAdmin: boolean,
+  isAllUsersView: boolean,
+  subjectUserId?: string,
+) {
+  const jobsPageQuery = new URLSearchParams();
+  const interviewsPageQuery = new URLSearchParams({ status: "interview" });
+
+  if (isAdmin && !isAllUsersView) {
+    if (subjectUserId === undefined) {
+      jobsPageQuery.set("userId", "self");
+    } else if (!isAllUsersScope(subjectUserId)) {
+      jobsPageQuery.set("userId", subjectUserId);
+    }
+
+    if (jobsPageQuery.has("userId")) {
+      interviewsPageQuery.set("userId", jobsPageQuery.get("userId")!);
+    }
+  }
+
+  return {
+    jobsPageHref: jobsPageQuery.toString()
+      ? `/dashboard/jobs?${jobsPageQuery}`
+      : "/dashboard/jobs",
+    interviewsPageHref: `/dashboard/jobs?${interviewsPageQuery}`,
+  };
+}
+
 export default async function DashboardOverview({
   subjectUserId,
   isAdmin = false,
@@ -76,6 +104,12 @@ export default async function DashboardOverview({
       ),
     );
 
+  const { jobsPageHref, interviewsPageHref } = buildJobsIndicatorLinks(
+    isAdmin,
+    isAllUsersView,
+    subjectUserId,
+  );
+
   return (
     <>
       <div className="grid auto-rows-max items-start gap-2 md:gap-2 lg:col-span-3">
@@ -97,6 +131,7 @@ export default async function DashboardOverview({
           <NumberCardToggle
             title="Jobs"
             metricLabel="Jobs Applied"
+            href={jobsPageHref}
             data={[
               {
                 label: "7d",
@@ -113,6 +148,7 @@ export default async function DashboardOverview({
           <NumberCardToggle
             title="Interviews"
             metricLabel="Interviews"
+            href={interviewsPageHref}
             data={[
               {
                 label: "7d",

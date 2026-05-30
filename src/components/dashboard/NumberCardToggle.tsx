@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import {
   Card,
@@ -15,6 +16,7 @@ import { cn } from "@/lib/utils";
 interface NumberCardToggleProps {
   title: string;
   metricLabel: string;
+  href: string;
   data: {
     label: string;
     num: number;
@@ -25,13 +27,14 @@ interface NumberCardToggleProps {
 export default function NumberCardToggle({
   title,
   metricLabel,
+  href,
   data,
 }: NumberCardToggleProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const current = data[activeIndex];
 
-  return (
-    <Card>
+  const cardBody = (
+    <>
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-green-600">
@@ -41,7 +44,12 @@ export default function NumberCardToggle({
             {data.map((item, index) => (
               <button
                 key={item.label}
-                onClick={() => setActiveIndex(index)}
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setActiveIndex(index);
+                }}
                 className={cn(
                   "px-2 py-1 transition-colors",
                   index === 0 && "rounded-l-md",
@@ -77,6 +85,18 @@ export default function NumberCardToggle({
           aria-label={`${current.trend}% increase`}
         />
       </CardFooter>
-    </Card>
+    </>
+  );
+
+  return (
+    <Link
+      href={href}
+      className="block rounded-lg transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      aria-label={`View ${title.toLowerCase()}`}
+    >
+      <Card className="h-full border-transparent shadow-none hover:border-border">
+        {cardBody}
+      </Card>
+    </Link>
   );
 }
