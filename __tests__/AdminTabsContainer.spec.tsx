@@ -28,6 +28,10 @@ vi.mock("@/actions/activity.actions", () => ({
   createActivityType: vi.fn(),
 }));
 
+vi.mock("@/actions/site-admin.actions", () => ({
+  listJobBidders: vi.fn().mockResolvedValue([]),
+}));
+
 describe("AdminTabsContainer", () => {
   const user = userEvent.setup({ skipHover: true });
 
@@ -90,6 +94,27 @@ describe("AdminTabsContainer", () => {
     expect(mockPush).toHaveBeenCalledWith(
       "/dashboard/admin?tab=activity-types"
     );
+  });
+
+  it("should render users tab when admin", () => {
+    render(<AdminTabsContainer isAdmin />);
+
+    expect(screen.getByRole("tab", { name: "Users" })).toBeInTheDocument();
+  });
+
+  it("should not render users tab for non-admins", () => {
+    render(<AdminTabsContainer isAdmin={false} />);
+
+    expect(screen.queryByRole("tab", { name: "Users" })).not.toBeInTheDocument();
+  });
+
+  it("should switch to users tab and update URL", async () => {
+    render(<AdminTabsContainer isAdmin />);
+
+    const usersTab = screen.getByRole("tab", { name: "Users" });
+    await user.click(usersTab);
+
+    expect(mockPush).toHaveBeenCalledWith("/dashboard/admin?tab=users");
   });
 
   it("should render companies tab panel content by default", async () => {

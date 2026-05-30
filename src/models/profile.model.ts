@@ -121,7 +121,17 @@ export interface CoverLetter {
   };
 }
 
-export type ProfileDocumentType = "resume" | "cover-letter";
+export interface SiteProfile {
+  id?: string;
+  profileId?: string;
+  siteUrl: string;
+  accountName: string;
+  email: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export type ProfileDocumentType = "resume" | "cover-letter" | "site-profile";
 
 export interface ProfileDocument {
   id: string;
@@ -132,4 +142,6 @@ export interface ProfileDocument {
   jobCount: number;
   FileId?: string;
   content?: string;
+  siteUrl?: string;
+  email?: string;
 }

@@ -46,7 +46,7 @@ export default async function SiteAdminBidderPage(props: PageProps) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <Button variant="ghost" size="sm" className="-ml-2 mb-1" asChild>
-            <Link href="/dashboard/site-admin">← All job seekers</Link>
+            <Link href="/dashboard/admin?tab=users">← All users</Link>
           </Button>
           <h1 className="text-xl font-semibold tracking-tight">
             Monitoring: {profile.name}

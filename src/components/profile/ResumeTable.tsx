@@ -29,6 +29,7 @@ import { useMemo, useState } from "react";
 import { toast } from "../ui/use-toast";
 import { deleteResumeById } from "@/actions/profile.actions";
 import { deleteCoverLetterById } from "@/actions/coverLetter.actions";
+import { deleteSiteProfileById } from "@/actions/siteProfile.actions";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
 import { Badge } from "../ui/badge";
 
@@ -36,6 +37,7 @@ type DocumentTableProps = {
   documents: ProfileDocument[];
   editResume: (doc: ProfileDocument) => void;
   editCoverLetter: (doc: ProfileDocument) => void;
+  editSiteProfile: (doc: ProfileDocument) => void;
   reloadDocuments: () => void;
 };
 
@@ -43,6 +45,7 @@ function DocumentTable({
   documents,
   editResume,
   editCoverLetter,
+  editSiteProfile,
   reloadDocuments,
 }: DocumentTableProps) {
   const [alertOpen, setAlertOpen] = useState(false);
@@ -59,7 +62,7 @@ function DocumentTable({
 
   const deleteDocument = async (doc: ProfileDocument) => {
     if (!doc.id) return;
-    if (doc.jobCount > 0) {
+    if (doc.type !== "site-profile" && doc.jobCount > 0) {
       const label =
         doc.type === "resume" ? "resume" : "cover letter";
       return toast({
@@ -72,11 +75,17 @@ function DocumentTable({
     const { success, message } =
       doc.type === "resume"
         ? await deleteResumeById(doc.id, doc.FileId)
-        : await deleteCoverLetterById(doc.id);
+        : doc.type === "cover-letter"
+          ? await deleteCoverLetterById(doc.id)
+          : await deleteSiteProfileById(doc.id);
 
     if (success) {
       const label =
-        doc.type === "resume" ? "Resume" : "Cover letter";
+        doc.type === "resume"
+          ? "Resume"
+          : doc.type === "cover-letter"
+            ? "Cover letter"
+            : "Site profile";
       toast({
         variant: "success",
         description: `${label} has been deleted successfully`,
@@ -110,6 +119,8 @@ function DocumentTable({
         <TableBody>
           {documents.map((doc) => {
             const isResume = doc.type === "resume";
+            const isCoverLetter = doc.type === "cover-letter";
+            const isSiteProfile = doc.type === "site-profile";
             return (
               <TableRow key={`${doc.type}-${doc.id}`}>
                 <TableCell className="font-medium">
@@ -123,10 +134,17 @@ function DocumentTable({
                         <Paperclip className="h-3.5 w-3.5 ml-1" />
                       ) : null}
                     </Link>
-                  ) : (
+                  ) : isCoverLetter ? (
                     <button
                       className="text-left hover:underline"
                       onClick={() => editCoverLetter(doc)}
+                    >
+                      {doc.title}
+                    </button>
+                  ) : (
+                    <button
+                      className="text-left hover:underline"
+                      onClick={() => editSiteProfile(doc)}
                     >
                       {doc.title}
                     </button>
@@ -134,9 +152,19 @@ function DocumentTable({
                 </TableCell>
                 <TableCell>
                   <Badge
-                    variant={isResume ? "default" : "secondary"}
+                    variant={
+                      isResume
+                        ? "default"
+                        : isCoverLetter
+                          ? "secondary"
+                          : "outline"
+                    }
                   >
-                    {isResume ? "Resume" : "Cover Letter"}
+                    {isResume
+                      ? "Resume"
+                      : isCoverLetter
+                        ? "Cover Letter"
+                        : "Site Profile"}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -179,13 +207,21 @@ function DocumentTable({
                             </DropdownMenuItem>
                           </Link>
                         </>
-                      ) : (
+                      ) : isCoverLetter ? (
                         <DropdownMenuItem
                           className="cursor-pointer"
                           onClick={() => editCoverLetter(doc)}
                         >
                           <Pencil className="mr-2 h-4 w-4" />
                           Edit Cover Letter
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => editSiteProfile(doc)}
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit Site Profile
                         </DropdownMenuItem>
                       )}
                       <DropdownMenuItem
@@ -207,7 +243,9 @@ function DocumentTable({
         pageTitle={
           documentToDelete?.type === "cover-letter"
             ? "cover letter"
-            : "resume"
+            : documentToDelete?.type === "site-profile"
+              ? "site profile"
+              : "resume"
         }
         open={alertOpen}
         onOpenChange={setAlertOpen}

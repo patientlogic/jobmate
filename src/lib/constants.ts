@@ -8,7 +8,6 @@ import {
   Wrench,
   Zap,
   BookOpen,
-  Shield,
 } from "lucide-react";
 
 export const APP_CONSTANTS = {
@@ -82,12 +81,6 @@ export const SIDEBAR_LINKS = [
     icon: UserRound,
     route: "/dashboard/profile",
     label: "Profile",
-  },
-  {
-    icon: Shield,
-    route: "/dashboard/site-admin",
-    label: "Site admin",
-    adminOnly: true,
   },
   {
     icon: Sheet,

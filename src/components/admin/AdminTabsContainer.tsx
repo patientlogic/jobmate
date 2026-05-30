@@ -5,11 +5,16 @@ import JobLocationsContainer from "@/components/admin/JobLocationsContainer";
 import JobSourcesContainer from "@/components/admin/JobSourcesContainer";
 import JobTitlesContainer from "@/components/admin/JobTitlesContainer";
 import TagsContainer from "@/components/admin/TagsContainer";
+import UsersContainer from "@/components/admin/UsersContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
-function AdminTabsContainer() {
+type AdminTabsContainerProps = {
+  isAdmin?: boolean;
+};
+
+function AdminTabsContainer({ isAdmin = false }: AdminTabsContainerProps) {
   const router = useRouter();
   const pathname = usePathname();
   const queryParams = useSearchParams();
@@ -39,6 +44,7 @@ function AdminTabsContainer() {
         <TabsTrigger value="sources">Sources</TabsTrigger>
         <TabsTrigger value="skills">Skills</TabsTrigger>
         <TabsTrigger value="activity-types">Activity Types</TabsTrigger>
+        {isAdmin ? <TabsTrigger value="users">Users</TabsTrigger> : null}
       </TabsList>
       <TabsContent value="companies">
         <CompaniesContainer />
@@ -58,6 +64,11 @@ function AdminTabsContainer() {
       <TabsContent value="activity-types">
         <ActivityTypesContainer />
       </TabsContent>
+      {isAdmin ? (
+        <TabsContent value="users">
+          <UsersContainer />
+        </TabsContent>
+      ) : null}
     </Tabs>
   );
 }
