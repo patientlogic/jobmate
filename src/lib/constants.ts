@@ -54,8 +54,8 @@ export const SIDEBAR_LINKS = [
   },
   {
     icon: BriefcaseBusiness,
-    route: "/dashboard/myjobs",
-    label: "My Jobs",
+    route: "/dashboard/jobs",
+    label: "Jobs",
   },
   {
     icon: Zap,
@@ -86,6 +86,7 @@ export const SIDEBAR_LINKS = [
     icon: Sheet,
     route: "/dashboard/admin",
     label: "Administration",
+    adminOnly: true,
   },
   {
     icon: Wrench,

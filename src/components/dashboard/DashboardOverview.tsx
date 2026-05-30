@@ -2,7 +2,9 @@ import {
   getActivityCalendarData,
   getActivityDataForPeriod,
   getJobsActivityForPeriod,
+  getInterviewJobsForPeriod,
   getJobsAppliedForPeriod,
+  getInterviewsForPeriod,
   getRecentActivities,
   getRecentJobs,
   getTopActivityTypesByDuration,
@@ -20,23 +22,32 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { isAllUsersScope } from "@/lib/admin-scope.constants";
 
 type DashboardOverviewProps = {
   /** When set (e.g. admin monitoring), dashboard metrics load for this user. */
   subjectUserId?: string;
+  isAdmin?: boolean;
 };
 
 export default async function DashboardOverview({
   subjectUserId,
+  isAdmin = false,
 }: DashboardOverviewProps) {
-  const showQuickActions = !subjectUserId;
+  const isAllUsersView = isAllUsersScope(subjectUserId);
+  const showQuickActions = !isAdmin || subjectUserId === undefined;
+  const disableJobLinks =
+    isAdmin && subjectUserId !== undefined && !isAllUsersView;
 
   const [
     { count: jobsAppliedLast7Days, trend: trendFor7Days },
     { count: jobsAppliedLast30Days, trend: trendFor30Days },
+    { count: interviewsLast7Days, trend: interviewsTrendFor7Days },
+    { count: interviewsLast30Days, trend: interviewsTrendFor30Days },
     recentJobs,
     recentActivities,
     weeklyData,
+    interviewsData,
     activitiesData,
     activityCalendarData,
     topActivities7Days,
@@ -44,9 +55,12 @@ export default async function DashboardOverview({
   ] = await Promise.all([
     getJobsAppliedForPeriod(7, subjectUserId),
     getJobsAppliedForPeriod(30, subjectUserId),
+    getInterviewsForPeriod(7, subjectUserId),
+    getInterviewsForPeriod(30, subjectUserId),
     getRecentJobs(subjectUserId),
     getRecentActivities(subjectUserId),
     getJobsActivityForPeriod(subjectUserId),
+    getInterviewJobsForPeriod(subjectUserId),
     getActivityDataForPeriod(subjectUserId),
     getActivityCalendarData(subjectUserId),
     getTopActivityTypesByDuration(7, subjectUserId),
@@ -64,8 +78,8 @@ export default async function DashboardOverview({
 
   return (
     <>
-      <div className="grid auto-rows-max items-start gap-2 md:gap-2 lg:col-span-2">
-        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-4">
+      <div className="grid auto-rows-max items-start gap-2 md:gap-2 lg:col-span-3">
+        <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-5">
           {showQuickActions ? (
             <JobsApplied />
           ) : (
@@ -73,13 +87,16 @@ export default async function DashboardOverview({
               <CardHeader className="pb-3">
                 <CardTitle className="text-muted-foreground">Overview</CardTitle>
                 <CardDescription className="max-w-lg text-balance leading-relaxed">
-                  Read-only metrics for this job seeker. Job detail links from
-                  this view are disabled.
+                  {isAllUsersView
+                    ? "Aggregated metrics across all users."
+                    : "Read-only metrics for this job seeker. Job detail links from this view are disabled."}
                 </CardDescription>
               </CardHeader>
             </Card>
           )}
           <NumberCardToggle
+            title="Jobs"
+            metricLabel="Jobs Applied"
             data={[
               {
                 label: "7d",
@@ -90,6 +107,22 @@ export default async function DashboardOverview({
                 label: "30d",
                 num: jobsAppliedLast30Days,
                 trend: trendFor30Days,
+              },
+            ]}
+          />
+          <NumberCardToggle
+            title="Interviews"
+            metricLabel="Interviews"
+            data={[
+              {
+                label: "7d",
+                num: interviewsLast7Days,
+                trend: interviewsTrendFor7Days,
+              },
+              {
+                label: "30d",
+                num: interviewsLast30Days,
+                trend: interviewsTrendFor30Days,
               },
             ]}
           />
@@ -109,6 +142,12 @@ export default async function DashboardOverview({
               axisLeftLegend: "JOBS APPLIED",
             },
             {
+              label: "Interviews",
+              data: interviewsData,
+              keys: ["value"],
+              axisLeftLegend: "INTERVIEWS",
+            },
+            {
               label: "Activities",
               data: activitiesData,
               keys: activitiesDataKeys(activitiesData),
@@ -118,13 +157,14 @@ export default async function DashboardOverview({
           ]}
         />
       </div>
-      <div>
+      {/* <div>
         <RecentCardToggle
           jobs={recentJobs}
           activities={recentActivities}
-          disableJobLinks={!showQuickActions}
+          disableJobLinks={disableJobLinks}
+          showJobSeeker={isAllUsersView}
         />
-      </div>
+      </div> */}
       <div className="w-full col-span-3">
         <Tabs defaultValue={activityCalendarDataKeys.at(-1)}>
           <TabsList>

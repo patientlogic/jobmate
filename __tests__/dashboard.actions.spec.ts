@@ -1,8 +1,10 @@
 import {
   getJobsAppliedForPeriod,
+  getInterviewsForPeriod,
   getRecentJobs,
   getActivityDataForPeriod,
   getJobsActivityForPeriod,
+  getInterviewJobsForPeriod,
   getActivityCalendarData,
 } from "@/actions/dashboard.actions";
 import { APP_CONSTANTS } from "@/lib/constants";
@@ -77,6 +79,25 @@ describe("Dashboard Actions", () => {
 
       await expect(getJobsAppliedForPeriod(7)).rejects.toThrow(
         "Failed to calculate job count",
+      );
+    });
+  });
+
+  describe("getInterviewsForPeriod", () => {
+    it("should return count and trend for interview jobs", async () => {
+      (prisma.$transaction as any).mockResolvedValue([4, 7]);
+
+      const result = await getInterviewsForPeriod(7);
+
+      expect(result).toEqual({ count: 4, trend: expect.any(Number) });
+      expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    });
+
+    it("should throw error when user is not authenticated", async () => {
+      (getViewerContext as any).mockResolvedValue(null);
+
+      await expect(getInterviewsForPeriod(7)).rejects.toThrow(
+        "Failed to calculate interview count",
       );
     });
   });
@@ -270,6 +291,40 @@ describe("Dashboard Actions", () => {
       result.forEach((item: any) => {
         expect(item.value).toBe(0);
       });
+    });
+  });
+
+  describe("getInterviewJobsForPeriod", () => {
+    it("should return interview job counts for the last 7 days", async () => {
+      (prisma.job.findMany as any).mockResolvedValue([
+        { appliedDate: new Date(), createdAt: new Date() },
+        { appliedDate: null, createdAt: new Date() },
+      ]);
+
+      const result = await getInterviewJobsForPeriod();
+
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(7);
+      result.forEach((item: any) => {
+        expect(item).toHaveProperty("day");
+        expect(item).toHaveProperty("value");
+        expect(typeof item.value).toBe("number");
+      });
+      expect(prisma.job.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            Status: { value: "interview" },
+          }),
+        }),
+      );
+    });
+
+    it("should throw error when user is not authenticated", async () => {
+      (getViewerContext as any).mockResolvedValue(null);
+
+      await expect(getInterviewJobsForPeriod()).rejects.toThrow(
+        "Failed to fetch interview jobs. ",
+      );
     });
   });
 

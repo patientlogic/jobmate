@@ -38,6 +38,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
 import { buildMyJobDetailPath } from "./JobsSubjectContext";
+import { isAllUsersScope } from "@/lib/admin-scope.constants";
 
 type MyJobsTableProps = {
   jobs: JobResponse[];
@@ -47,6 +48,7 @@ type MyJobsTableProps = {
   onChangeJobStatus: (id: string, status: JobStatus) => void;
   onAddNote: (jobId: string) => void;
   subjectUserId?: string;
+  showJobSeeker?: boolean;
 };
 
 function MyJobsTable({
@@ -57,13 +59,18 @@ function MyJobsTable({
   onChangeJobStatus,
   onAddNote,
   subjectUserId,
+  showJobSeeker = false,
 }: MyJobsTableProps) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [jobIdToDelete, setJobIdToDelete] = useState("");
 
   const router = useRouter();
-  const viewJobDetails = (jobId: string) => {
-    router.push(buildMyJobDetailPath(jobId, subjectUserId));
+
+  const detailSubjectUserId = (job: JobResponse) =>
+    isAllUsersScope(subjectUserId) ? job.User?.id : subjectUserId;
+
+  const viewJobDetails = (jobId: string, job: JobResponse) => {
+    router.push(buildMyJobDetailPath(jobId, detailSubjectUserId(job)));
   };
 
   const onDeleteJob = (jobId: string) => {
@@ -80,6 +87,9 @@ function MyJobsTable({
               <span className="sr-only">Company Logo</span>
             </TableHead>
             <TableHead className="hidden md:table-cell">Date Applied</TableHead>
+            {showJobSeeker ? (
+              <TableHead className="hidden lg:table-cell">Job Seeker</TableHead>
+            ) : null}
             <TableHead>Title</TableHead>
             <TableHead>Company</TableHead>
             <TableHead className="hidden md:table-cell">Location</TableHead>
@@ -106,12 +116,17 @@ function MyJobsTable({
                 <TableCell className="hidden md:table-cell w-[120px]">
                   {job.appliedDate ? format(job.appliedDate, "PP") : "N/A"}
                 </TableCell>
+                {showJobSeeker ? (
+                  <TableCell className="hidden lg:table-cell">
+                    {job.User?.name ?? "—"}
+                  </TableCell>
+                ) : null}
                 <TableCell
                   className="font-medium cursor-pointer max-w-[120px] sm:max-w-none"
                 >
                   <div className="flex items-center gap-1.5">
                     <Link
-                      href={buildMyJobDetailPath(job.id, subjectUserId)}
+                      href={buildMyJobDetailPath(job.id, detailSubjectUserId(job))}
                       className="block truncate"
                     >
                       {job.JobTitle?.label}
@@ -169,7 +184,7 @@ function MyJobsTable({
                       <DropdownMenuGroup>
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          onClick={() => viewJobDetails(job?.id)}
+                          onClick={() => viewJobDetails(job?.id, job)}
                         >
                           <ListCollapse className="mr-2 h-4 w-4" />
                           View Details

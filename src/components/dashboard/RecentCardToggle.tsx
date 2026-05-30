@@ -14,13 +14,22 @@ type RecentActivity = {
   duration: number | null;
   endTime: Date | null;
   activityType: { label: string } | null;
+  User?: { id: string; name: string };
 };
+
+function jobDetailHref(job: JobResponse) {
+  const ownerId = job.User?.id;
+  return ownerId
+    ? `/dashboard/jobs/${job.id}?userId=${ownerId}`
+    : `/dashboard/jobs/${job.id}`;
+}
 
 interface RecentCardToggleProps {
   jobs: JobResponse[];
   activities: RecentActivity[];
   /** When true, recent jobs render as plain text (e.g. admin read-only bidder view). */
   disableJobLinks?: boolean;
+  showJobSeeker?: boolean;
 }
 
 function formatDuration(totalMinutes: number) {
@@ -35,6 +44,7 @@ export default function RecentCardToggle({
   jobs,
   activities,
   disableJobLinks = false,
+  showJobSeeker = false,
 }: RecentCardToggleProps) {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -83,16 +93,22 @@ export default function RecentCardToggle({
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {job.Company?.label}
+                      {showJobSeeker && job.User?.name
+                        ? ` · ${job.User.name}`
+                        : null}
                     </p>
                   </div>
                 ) : (
-                  <Link href={`/dashboard/myjobs/${job?.id}`}>
+                  <Link href={jobDetailHref(job)}>
                     <div className="grid gap-1">
                       <p className="text-sm font-medium leading-none">
                         {job.JobTitle?.label}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {job.Company?.label}
+                        {showJobSeeker && job.User?.name
+                          ? ` · ${job.User.name}`
+                          : null}
                       </p>
                     </div>
                   </Link>
@@ -110,6 +126,9 @@ export default function RecentCardToggle({
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {activity.activityType?.label || "Unknown"}
+                    {showJobSeeker && activity.User?.name
+                      ? ` · ${activity.User.name}`
+                      : null}
                   </p>
                 </div>
                 <div className="ml-auto text-right shrink-0">

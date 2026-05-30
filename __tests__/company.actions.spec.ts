@@ -249,7 +249,7 @@ describe("Company Actions", () => {
           isGlobal: false,
         },
       });
-      expect(revalidatePath).toHaveBeenCalledWith("/dashboard/myjobs", "page");
+      expect(revalidatePath).toHaveBeenCalledWith("/dashboard/jobs", "page");
     });
 
     it("should create a global company for admin catalog", async () => {

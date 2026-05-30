@@ -13,6 +13,8 @@ import { TrendingDown, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface NumberCardToggleProps {
+  title: string;
+  metricLabel: string;
   data: {
     label: string;
     num: number;
@@ -20,7 +22,11 @@ interface NumberCardToggleProps {
   }[];
 }
 
-export default function NumberCardToggle({ data }: NumberCardToggleProps) {
+export default function NumberCardToggle({
+  title,
+  metricLabel,
+  data,
+}: NumberCardToggleProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const current = data[activeIndex];
 
@@ -29,7 +35,7 @@ export default function NumberCardToggle({ data }: NumberCardToggleProps) {
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium text-green-600">
-            Jobs
+            {title}
           </CardTitle>
           <div className="flex rounded-md border text-xs">
             {data.map((item, index) => (
@@ -52,7 +58,7 @@ export default function NumberCardToggle({ data }: NumberCardToggleProps) {
         </div>
         <CardTitle className="text-4xl">
           {current.num}{" "}
-          <span className="text-xs text-muted-foreground">Jobs Applied</span>
+          <span className="text-xs text-muted-foreground">{metricLabel}</span>
         </CardTitle>
       </CardHeader>
       <CardContent>

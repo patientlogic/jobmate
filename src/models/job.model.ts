@@ -52,6 +52,7 @@ export interface JobResponse {
   matchData?: string | null;
   tags?: Tag[];
   _count?: { Notes?: number };
+  User?: { id: string; name: string };
 }
 
 export interface JobTitle {

@@ -9,10 +9,10 @@ import { getAllJobLocations } from "@/actions/jobLocation.actions";
 import { getAllTags } from "@/actions/tag.actions";
 
 export const metadata: Metadata = {
-  title: "My Jobs",
+  title: "Jobs",
 };
 
-async function MyJobs() {
+async function JobsPage() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
 
@@ -44,4 +44,4 @@ async function MyJobs() {
   );
 }
 
-export default MyJobs;
+export default JobsPage;

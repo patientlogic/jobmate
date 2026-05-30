@@ -34,7 +34,7 @@ export default function WeeklyBarChartToggle({
     return newItem;
   });
 
-  const isJobsChart = current.label !== "Activities";
+  const isJobsChart = current.label === "Jobs" || current.label === "Interviews";
   const maxValue = isJobsChart
     ? Math.max(
         0,

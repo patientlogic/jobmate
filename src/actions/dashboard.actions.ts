@@ -1,21 +1,34 @@
 import { APP_CONSTANTS } from "@/lib/constants";
 import prisma from "@/lib/db";
 import { resolveScopedUserId } from "@/lib/admin-scope";
+import { isAllUsersScope } from "@/lib/admin-scope.constants";
 import { calculatePercentageDifference, getLast7Days } from "@/lib/utils";
 import { getViewerContext } from "@/utils/user.utils";
 import { Prisma } from "@prisma/client";
 import { format, parseISO, subDays } from "date-fns";
 
-async function requireSubjectUserId(subjectUserId?: string) {
+async function resolveDashboardScope(subjectUserId?: string) {
   const viewer = await getViewerContext();
   if (!viewer) {
     throw new Error("Not authenticated");
   }
-  return resolveScopedUserId({
+
+  const isAllUsers =
+    viewer.role === "ADMIN" && isAllUsersScope(subjectUserId);
+  if (isAllUsers) {
+    return { isAllUsers: true as const, userId: undefined };
+  }
+
+  const userId = await resolveScopedUserId({
     viewerId: viewer.id,
     viewerRole: viewer.role,
     subjectUserId,
   });
+  return { isAllUsers: false as const, userId };
+}
+
+function userWhere(isAllUsers: boolean, userId?: string) {
+  return isAllUsers || !userId ? {} : { userId };
 }
 
 export const getJobsAppliedForPeriod = async (
@@ -23,13 +36,13 @@ export const getJobsAppliedForPeriod = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const uid = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const startDate1 = subDays(new Date(), daysAgo);
     const startDate2 = subDays(new Date(), daysAgo * 2);
     const endDate = new Date();
     const query = (date: Date): Prisma.JobCountArgs => ({
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         applied: true,
         appliedDate: {
           gte: date,
@@ -52,14 +65,59 @@ export const getJobsAppliedForPeriod = async (
   }
 };
 
+export const getInterviewsForPeriod = async (
+  daysAgo: number,
+  subjectUserId?: string,
+): Promise<{ count: number; trend: number }> => {
+  try {
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
+    const startDate1 = subDays(new Date(), daysAgo);
+    const startDate2 = subDays(new Date(), daysAgo * 2);
+    const endDate = new Date();
+    const query = (date: Date): Prisma.JobCountArgs => ({
+      where: {
+        ...userWhere(isAllUsers, userId),
+        Status: { value: "interview" },
+        OR: [
+          {
+            appliedDate: {
+              gte: date,
+              lt: endDate,
+            },
+          },
+          {
+            appliedDate: null,
+            createdAt: {
+              gte: date,
+              lt: endDate,
+            },
+          },
+        ],
+      },
+    });
+
+    const [count, count2] = await prisma.$transaction([
+      prisma.job.count(query(startDate1)),
+      prisma.job.count(query(startDate2)),
+    ]);
+    const difference = Math.abs(count2 - count);
+    const trend = calculatePercentageDifference(difference, count);
+    return { count, trend };
+  } catch (error) {
+    const msg = "Failed to calculate interview count";
+    console.error(msg, error);
+    throw new Error(msg);
+  }
+};
+
 export const getRecentJobs = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const uid = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const list = await prisma.job.findMany({
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         applied: true,
       },
       include: {
@@ -68,6 +126,7 @@ export const getRecentJobs = async (
         Company: true,
         Status: true,
         Location: true,
+        ...(isAllUsers ? { User: { select: { id: true, name: true } } } : {}),
       },
       orderBy: {
         appliedDate: "desc",
@@ -86,7 +145,7 @@ export const getActivityDataForPeriod = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const uid = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const now = new Date();
     // Use local time for date range to match grouping and getLast7Days
     const today = new Date(
@@ -109,7 +168,7 @@ export const getActivityDataForPeriod = async (
     );
     const activities = await prisma.activity.findMany({
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         endTime: {
           gte: sevenDaysAgo,
           lte: today,
@@ -161,7 +220,7 @@ export const getJobsActivityForPeriod = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const uid = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const now = new Date();
     // Use local time for date range to match grouping and getLast7Days
     const today = new Date(
@@ -188,7 +247,7 @@ export const getJobsActivityForPeriod = async (
         _all: true,
       },
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         applied: true,
         appliedDate: {
           gte: sevenDaysAgo,
@@ -222,6 +281,47 @@ export const getJobsActivityForPeriod = async (
   }
 };
 
+export const getInterviewJobsForPeriod = async (
+  subjectUserId?: string,
+): Promise<any | undefined> => {
+  try {
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
+    const last7Days = getLast7Days("yyyy-MM-dd");
+    const last7DaysSet = new Set(last7Days);
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        ...userWhere(isAllUsers, userId),
+        Status: { value: "interview" },
+      },
+      select: {
+        appliedDate: true,
+        createdAt: true,
+      },
+    });
+
+    const groupedInterviews = jobs.reduce(
+      (acc: Record<string, number>, job) => {
+        const referenceDate = job.appliedDate ?? job.createdAt;
+        const date = format(new Date(referenceDate), "yyyy-MM-dd");
+        if (!last7DaysSet.has(date)) return acc;
+        acc[date] = (acc[date] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+
+    return last7Days.map((dateStr) => ({
+      day: format(parseISO(dateStr), "EEE, MMM d"),
+      value: groupedInterviews[dateStr] || 0,
+    }));
+  } catch (error) {
+    const msg = "Failed to fetch interview jobs. ";
+    console.error(msg, error);
+    throw new Error(msg);
+  }
+};
+
 export interface TopActivityType {
   label: string;
   hours: number;
@@ -232,7 +332,7 @@ export const getTopActivityTypesByDuration = async (
   subjectUserId?: string,
 ): Promise<TopActivityType[]> => {
   try {
-    const uid = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const now = new Date();
     const today = new Date(
       now.getFullYear(),
@@ -255,7 +355,7 @@ export const getTopActivityTypesByDuration = async (
 
     const activities = await prisma.activity.findMany({
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         endTime: {
           gte: startDate,
           lte: today,
@@ -298,14 +398,15 @@ export const getRecentActivities = async (
   subjectUserId?: string,
 ) => {
   try {
-    const uid = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const list = await prisma.activity.findMany({
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         endTime: { not: null },
       },
       include: {
         activityType: true,
+        ...(isAllUsers ? { User: { select: { id: true, name: true } } } : {}),
       },
       orderBy: {
         endTime: "desc",
@@ -324,7 +425,7 @@ export const getActivityCalendarData = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const uid = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const now = new Date();
     // Use local time for date range to match grouping
     const today = new Date(
@@ -351,7 +452,7 @@ export const getActivityCalendarData = async (
         _all: true,
       },
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         applied: true,
         appliedDate: {
           gte: daysAgo,
@@ -365,7 +466,7 @@ export const getActivityCalendarData = async (
 
     const activityData = await prisma.activity.findMany({
       where: {
-        userId: uid,
+        ...userWhere(isAllUsers, userId),
         startTime: { gte: daysAgo, lte: today },
         duration: { not: null },
       },

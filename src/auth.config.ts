@@ -30,12 +30,12 @@ export const authConfig = {
     authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
       const isOnDashboard = nextUrl.pathname.startsWith("/dashboard");
-      const siteAdminRoute = nextUrl.pathname.startsWith(
-        "/dashboard/site-admin",
-      );
+      const adminOnlyRoute =
+        nextUrl.pathname.startsWith("/dashboard/site-admin") ||
+        nextUrl.pathname.startsWith("/dashboard/admin");
       const isApiRoute = nextUrl.pathname.startsWith("/api");
 
-      if (siteAdminRoute) {
+      if (adminOnlyRoute) {
         if (!isLoggedIn) {
           return false;
         }

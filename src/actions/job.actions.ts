@@ -5,6 +5,7 @@ import { AddJobFormSchema } from "@/models/addJobForm.schema";
 import { JOB_TYPES, JobStatus } from "@/models/job.model";
 import { getCurrentUser, getViewerContext } from "@/utils/user.utils";
 import { requireSubjectUserId, resolveScopedUserId } from "@/lib/admin-scope";
+import { isAllUsersScope } from "@/lib/admin-scope.constants";
 import { getAllJobSources } from "@/actions/jobSource.actions";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
@@ -31,7 +32,7 @@ export async function resolveJobOwnerId(
     throw new Error("Not authenticated");
   }
 
-  if (subjectUserId?.trim()) {
+  if (subjectUserId?.trim() && !isAllUsersScope(subjectUserId)) {
     const ownerId = await requireSubjectUserId(subjectUserId);
     const job = await prisma.job.findFirst({
       where: { id: jobId, userId: ownerId },
@@ -77,11 +78,8 @@ export const getJobsList = async (
       throw new Error("Not authenticated");
     }
 
-    const ownerId = await resolveScopedUserId({
-      viewerId: viewer.id,
-      viewerRole: viewer.role,
-      subjectUserId: bidderSubjectUserId,
-    });
+    const isAllUsers =
+      viewer.role === "ADMIN" && isAllUsersScope(bidderSubjectUserId);
     const skip = (page - 1) * limit;
 
     const filterBy = filter
@@ -97,9 +95,16 @@ export const getJobsList = async (
       : {};
 
     const whereClause: any = {
-      userId: ownerId,
       ...filterBy,
     };
+
+    if (!isAllUsers) {
+      whereClause.userId = await resolveScopedUserId({
+        viewerId: viewer.id,
+        viewerRole: viewer.role,
+        subjectUserId: bidderSubjectUserId,
+      });
+    }
 
     if (companyValue) {
       whereClause.Company = { value: companyValue };
@@ -158,6 +163,9 @@ export const getJobsList = async (
           CoverLetter: true,
           matchScore: true,
           _count: { select: { Notes: true } },
+          ...(isAllUsers
+            ? { User: { select: { id: true, name: true } } }
+            : {}),
         },
         orderBy: {
           createdAt: "desc",
@@ -180,7 +188,13 @@ export async function* getJobsIterator(
   pageSize = 200,
   subjectUserId?: string,
 ) {
-  const ownerId = await requireSubjectUserId(subjectUserId);
+  const viewer = await getViewerContext();
+  if (!viewer) {
+    throw new Error("Not authenticated");
+  }
+
+  const isAllUsers =
+    viewer.role === "ADMIN" && isAllUsersScope(subjectUserId);
   let page = 1;
 
   while (true) {
@@ -191,11 +205,13 @@ export async function* getJobsIterator(
         : { type: filter }
       : {};
 
+    const whereClause: Record<string, unknown> = { ...filterBy };
+    if (!isAllUsers) {
+      whereClause.userId = await requireSubjectUserId(subjectUserId);
+    }
+
     const chunk = await prisma.job.findMany({
-      where: {
-        userId: ownerId,
-        ...filterBy,
-      },
+      where: whereClause,
       select: {
         id: true,
         createdAt: true,
@@ -241,13 +257,18 @@ export const getJobDetails = async (
       throw new Error("Not authenticated");
     }
 
-    const whereClause = subjectUserId?.trim()
+    const scopedSubjectUserId =
+      subjectUserId?.trim() && !isAllUsersScope(subjectUserId)
+        ? subjectUserId.trim()
+        : undefined;
+
+    const whereClause = scopedSubjectUserId
       ? {
           id: jobId,
           userId: await resolveScopedUserId({
             viewerId: viewer.id,
             viewerRole: viewer.role,
-            subjectUserId,
+            subjectUserId: scopedSubjectUserId,
           }),
         }
       : viewer.role === "ADMIN"
@@ -487,7 +508,7 @@ export const updateJob = async (
         tags: { set: tagIds.map((id) => ({ id })) },
       },
     });
-    // revalidatePath("/dashboard/myjobs", "page");
+    // revalidatePath("/dashboard/jobs", "page");
     return { job, success: true };
   } catch (error) {
     const msg = "Failed to update job. ";

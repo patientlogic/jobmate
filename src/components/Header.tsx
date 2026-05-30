@@ -10,15 +10,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SIDEBAR_LINKS } from "@/lib/constants";
-import { signOut } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { getCurrentUser } from "@/utils/user.utils";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { AppLogo } from "./AppLogo";
 import { APP_NAME } from "@config/app-name";
 
 async function Header() {
-  // const session = await auth();
-  const user = await getCurrentUser();
+  const [user, session] = await Promise.all([getCurrentUser(), auth()]);
+  const isAdmin = session?.user?.role === "ADMIN";
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
@@ -35,8 +35,10 @@ async function Header() {
               <AppLogo size="sm" className="justify-start" />
             </SheetClose>
             {SIDEBAR_LINKS.map((item) => {
-              // Only show dev-only items in development mode
               if (item.devOnly && process.env.NODE_ENV !== "development") {
+                return null;
+              }
+              if ("adminOnly" in item && item.adminOnly && !isAdmin) {
                 return null;
               }
               return (

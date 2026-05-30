@@ -5,7 +5,20 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_APP_NAME: appName,
   },
-  devIndicators: false,
+  async redirects() {
+    return [
+      {
+        source: "/dashboard/myjobs",
+        destination: "/dashboard/jobs",
+        permanent: true,
+      },
+      {
+        source: "/dashboard/myjobs/:id",
+        destination: "/dashboard/jobs/:id",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

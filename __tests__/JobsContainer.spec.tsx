@@ -216,7 +216,7 @@ describe("JobsContainer Search Functionality", () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     (useRouter as any).mockReturnValue(mockRouter);
-    (usePathname as any).mockReturnValue("/dashboard/myjobs");
+    (usePathname as any).mockReturnValue("/dashboard/jobs");
     (useSearchParams as any).mockReturnValue(mockSearchParams);
   });
 
@@ -758,7 +758,7 @@ describe("JobsContainer Search Functionality", () => {
         await user.click(badge);
       });
 
-      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/myjobs");
+      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/jobs");
     });
 
     it("should not show company badge when no company param", async () => {
@@ -865,7 +865,7 @@ describe("JobsContainer Search Functionality", () => {
         await user.click(badge);
       });
 
-      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/myjobs");
+      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/jobs");
     });
   });
 
@@ -923,7 +923,7 @@ describe("JobsContainer Search Functionality", () => {
         await user.click(badge);
       });
 
-      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/myjobs");
+      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/jobs");
     });
   });
 
@@ -981,7 +981,7 @@ describe("JobsContainer Search Functionality", () => {
         await user.click(badge);
       });
 
-      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/myjobs");
+      expect(mockRouter.push).toHaveBeenCalledWith("/dashboard/jobs");
     });
   });
 });

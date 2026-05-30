@@ -233,7 +233,7 @@ export const createResumeProfile = async (
               },
             },
           });
-    // revalidatePath("/dashboard/myjobs", "page");
+    // revalidatePath("/dashboard/jobs", "page");
     return { success: true, data: res };
   } catch (error) {
     const msg = "Failed to create resume.";

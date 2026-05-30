@@ -64,7 +64,7 @@ function AppliedJobsTable({ jobs }: AppliedJobsTableProps) {
             >
               <div className="flex items-center gap-1.5">
                 <Link
-                  href={`/dashboard/myjobs/${job.id}?userId=${job.userId}`}
+                  href={`/dashboard/jobs/${job.id}?userId=${job.userId}`}
                   className="block truncate"
                 >
                   {job.JobTitle?.label}

@@ -20,7 +20,7 @@ async function createNewJob(page: Page, jobText: string) {
   const locationText = `location ${suffix}`;
 
   await page.getByRole("button", { name: "New Job" }).click();
-  await expect(page).toHaveURL("/dashboard/myjobs");
+  await expect(page).toHaveURL("/dashboard/jobs");
 
   await page.getByTestId("add-job-btn").click();
   await expect(page.getByTestId("add-job-dialog-title")).toBeVisible();
@@ -90,7 +90,7 @@ async function createNewJob(page: Page, jobText: string) {
 async function deleteJob(page: Page, jobText: string) {
   // Wait for any pending navigations to complete before navigating
   await page.waitForLoadState("load");
-  await page.goto("/dashboard/myjobs");
+  await page.goto("/dashboard/jobs");
   const cells = page.getByText(new RegExp(jobText, "i"));
   await expect(cells.first()).toBeVisible();
   await page

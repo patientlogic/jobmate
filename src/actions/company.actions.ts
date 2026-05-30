@@ -221,7 +221,7 @@ export const addCompany = async (
         isGlobal: options?.globalCatalog ?? false,
       },
     });
-    revalidatePath("/dashboard/myjobs", "page");
+    revalidatePath("/dashboard/jobs", "page");
     revalidatePath("/dashboard/admin", "page");
     return { success: true, data: res };
   } catch (error) {
@@ -290,7 +290,7 @@ export const updateCompany = async (
       },
     });
 
-    revalidatePath("/dashboard/myjobs", "page");
+    revalidatePath("/dashboard/jobs", "page");
     revalidatePath("/dashboard/admin", "page");
     return { success: true, data: res };
   } catch (error) {
@@ -381,7 +381,7 @@ export const deleteCompanyById = async (
         id: companyId,
       },
     });
-    revalidatePath("/dashboard/myjobs", "page");
+    revalidatePath("/dashboard/jobs", "page");
     revalidatePath("/dashboard/admin", "page");
     return { res, success: true };
   } catch (error) {

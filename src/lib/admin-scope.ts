@@ -3,6 +3,7 @@ import "server-only";
 import prisma from "@/lib/db";
 import type { UserRole } from "@prisma/client";
 import { getViewerContext } from "@/utils/user.utils";
+import { isAllUsersScope } from "@/lib/admin-scope.constants";
 
 /**
  * Resolve which user's data to load for dashboard/jobs reads.
@@ -15,7 +16,7 @@ export async function resolveScopedUserId(params: {
 }): Promise<string> {
   const trimmed = params.subjectUserId?.trim();
   const selfId = params.viewerId;
-  if (!trimmed || trimmed === selfId) {
+  if (!trimmed || trimmed === selfId || isAllUsersScope(trimmed)) {
     return selfId;
   }
   if (params.viewerRole !== "ADMIN") {

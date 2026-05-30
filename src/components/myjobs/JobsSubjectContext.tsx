@@ -24,12 +24,12 @@ export function useJobsSubjectUserId() {
 
 function buildMyJobsPath(subjectUserId?: string) {
   return subjectUserId
-    ? `/dashboard/myjobs?userId=${subjectUserId}`
-    : "/dashboard/myjobs";
+    ? `/dashboard/jobs?userId=${subjectUserId}`
+    : "/dashboard/jobs";
 }
 
 export function buildMyJobDetailPath(jobId: string, subjectUserId?: string) {
-  const base = `/dashboard/myjobs/${jobId}`;
+  const base = `/dashboard/jobs/${jobId}`;
   return subjectUserId ? `${base}?userId=${subjectUserId}` : base;
 }
 

@@ -50,6 +50,8 @@ import {
   type JobBidderSummary,
 } from "@/actions/site-admin.actions";
 import { JobsSubjectProvider } from "./JobsSubjectContext";
+import { AdminUserSelector } from "../admin/AdminUserSelector";
+import { ALL_USERS_SUBJECT_ID, isAllUsersScope } from "@/lib/admin-scope.constants";
 
 type MyJobsProps = {
   isAdmin?: boolean;
@@ -73,9 +75,23 @@ function JobsContainer({
   const router = useRouter();
   const pathname = usePathname();
   const queryParams = useSearchParams();
+  const rawUserId = isAdmin ? queryParams.get("userId") : null;
+  const isAllUsersView =
+    isAdmin && (!rawUserId || isAllUsersScope(rawUserId));
   const subjectUserId = isAdmin
-    ? queryParams.get("userId") ?? undefined
+    ? isAllUsersView
+      ? ALL_USERS_SUBJECT_ID
+      : rawUserId === "self"
+        ? undefined
+        : rawUserId ?? undefined
     : undefined;
+  const userSelectorValue = isAdmin
+    ? isAllUsersView
+      ? ALL_USERS_SUBJECT_ID
+      : rawUserId === "self"
+        ? "self"
+        : (rawUserId ?? ALL_USERS_SUBJECT_ID)
+    : "self";
   const [users, setUsers] = useState<JobBidderSummary[]>([]);
   const createQueryString = useCallback(
     (name: string, value: string) => {
@@ -133,7 +149,10 @@ function JobsContainer({
     ? sources.find((s) => s.value === sourceFilter)?.label
     : null;
 
-  const selectedUser = users.find((u) => u.id === subjectUserId);
+  const selectedUser =
+    subjectUserId && !isAllUsersScope(subjectUserId)
+      ? users.find((u) => u.id === subjectUserId)
+      : undefined;
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -152,6 +171,8 @@ function JobsContainer({
   const onUserChange = (value: string) => {
     const params = new URLSearchParams(queryParams.toString());
     if (value === "self") {
+      params.set("userId", "self");
+    } else if (value === ALL_USERS_SUBJECT_ID) {
       params.delete("userId");
     } else {
       params.set("userId", value);
@@ -159,6 +180,8 @@ function JobsContainer({
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   };
+
+  const scopedSubjectUserId = isAllUsersView ? undefined : subjectUserId;
 
   const clearCompanyFilter = () => {
     setCompanyFilter(null);
@@ -237,7 +260,7 @@ function JobsContainer({
   }, [loadJobs, filterKey, searchTerm]);
 
   const onDeleteJob = async (jobId: string) => {
-    const { res, success, message } = await deleteJobById(jobId, subjectUserId);
+    const { res, success, message } = await deleteJobById(jobId, scopedSubjectUserId);
     if (success) {
       toast({
         variant: "success",
@@ -254,7 +277,7 @@ function JobsContainer({
   };
 
   const onEditJob = async (jobId: string) => {
-    const { job, success, message } = await getJobDetails(jobId, subjectUserId);
+    const { job, success, message } = await getJobDetails(jobId, scopedSubjectUserId);
     if (!success) {
       toast({
         variant: "destructive",
@@ -270,7 +293,7 @@ function JobsContainer({
     const { success, message } = await updateJobStatus(
       jobId,
       jobStatus,
-      subjectUserId,
+      scopedSubjectUserId,
     );
     if (success) {
       router.refresh();
@@ -396,8 +419,12 @@ function JobsContainer({
       <Card x-chunk="dashboard-06-chunk-0">
         <CardHeader className="flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
           <div className="space-y-1">
-            <CardTitle>My Jobs</CardTitle>
-            {isAdmin && subjectUserId && selectedUser ? (
+            <CardTitle>Jobs</CardTitle>
+            {isAdmin && isAllUsersView ? (
+              <p className="text-sm text-muted-foreground">
+                Viewing jobs for all users
+              </p>
+            ) : isAdmin && selectedUser ? (
               <p className="text-sm text-muted-foreground">
                 Managing jobs for {selectedUser.name}
               </p>
@@ -405,28 +432,11 @@ function JobsContainer({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isAdmin ? (
-              <Select
-                value={subjectUserId ?? "self"}
+              <AdminUserSelector
+                users={users}
+                value={userSelectorValue}
                 onValueChange={onUserChange}
-              >
-                <SelectTrigger
-                  className="h-8 w-[200px]"
-                  aria-label="Select user jobs"
-                >
-                  <SelectValue placeholder="Select user" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>User</SelectLabel>
-                    <SelectItem value="self">My jobs</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              />
             ) : null}
             {companyLabel && (
               <button
@@ -504,18 +514,20 @@ function JobsContainer({
                 Export
               </span>
             </Button>
-            <AddJob
-              jobStatuses={statuses}
-              companies={companies}
-              jobTitles={titles}
-              locations={locations}
-              jobSources={sources}
-              tags={tags}
-              editJob={editJob}
-              resetEditJob={resetEditJob}
-              subjectUserId={subjectUserId}
-              onJobSaved={reloadJobs}
-            />
+            {!isAllUsersView ? (
+              <AddJob
+                jobStatuses={statuses}
+                companies={companies}
+                jobTitles={titles}
+                locations={locations}
+                jobSources={sources}
+                tags={tags}
+                editJob={editJob}
+                resetEditJob={resetEditJob}
+                subjectUserId={scopedSubjectUserId}
+                onJobSaved={reloadJobs}
+              />
+            ) : null}
           </div>
         </CardHeader>
         <CardContent>
@@ -530,6 +542,7 @@ function JobsContainer({
                 onChangeJobStatus={onChangeJobStatus}
                 onAddNote={onAddNote}
                 subjectUserId={subjectUserId}
+                showJobSeeker={isAllUsersView}
               />
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4">
                 <RecordsCount
@@ -561,7 +574,7 @@ function JobsContainer({
         onOpenChange={setNoteDialogOpen}
         jobId={noteJobId}
         onSaved={() => reloadJobs()}
-        subjectUserId={subjectUserId}
+        subjectUserId={scopedSubjectUserId}
       />
     </JobsSubjectProvider>
   );
