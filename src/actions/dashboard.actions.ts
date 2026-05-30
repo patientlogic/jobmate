@@ -102,7 +102,7 @@ export const getInterviewsForPeriod = async (
     ]);
     const difference = Math.abs(count2 - count);
     const trend = calculatePercentageDifference(difference, count);
-    return { count, trend };
+    return { count, trend: trend ?? 0 };
   } catch (error) {
     const msg = "Failed to calculate interview count";
     console.error(msg, error);
