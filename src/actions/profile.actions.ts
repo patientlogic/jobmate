@@ -9,6 +9,11 @@ import { AddSummarySectionFormSchema } from "@/models/addSummaryForm.schema";
 import { CreateResumeFormSchema } from "@/models/createResumeForm.schema";
 import { ResumeSection, SectionType, Summary } from "@/models/profile.model";
 import { requireSubjectUserId } from "@/lib/admin-scope";
+import {
+  profileOwnerSelect,
+  profileOwnerWhere,
+  resolveProfileListScope,
+} from "@/lib/profile-list-scope";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -22,16 +27,12 @@ export const getResumeList = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const ownerId = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveProfileListScope(subjectUserId);
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       prisma.resume.findMany({
-        where: {
-          profile: {
-            userId: ownerId,
-          },
-        },
+        where: profileOwnerWhere(isAllUsers, userId),
         skip,
         take: limit,
         select: {
@@ -46,17 +47,14 @@ export const getResumeList = async (
               Job: true,
             },
           },
+          ...(isAllUsers ? profileOwnerSelect : {}),
         },
         orderBy: {
           createdAt: "desc",
         },
       }),
       prisma.resume.count({
-        where: {
-          profile: {
-            userId: ownerId,
-          },
-        },
+        where: profileOwnerWhere(isAllUsers, userId),
       }),
     ]);
     return { data, total, success: true };

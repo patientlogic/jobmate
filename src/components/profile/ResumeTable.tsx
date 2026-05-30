@@ -32,6 +32,7 @@ import { deleteCoverLetterById } from "@/actions/coverLetter.actions";
 import { deleteSiteProfileById } from "@/actions/siteProfile.actions";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
 import { Badge } from "../ui/badge";
+import { isAllUsersScope } from "@/lib/admin-scope.constants";
 
 type DocumentTableProps = {
   documents: ProfileDocument[];
@@ -40,6 +41,7 @@ type DocumentTableProps = {
   editSiteProfile: (doc: ProfileDocument) => void;
   reloadDocuments: () => void;
   subjectUserId?: string;
+  showOwner?: boolean;
 };
 
 function DocumentTable({
@@ -49,6 +51,7 @@ function DocumentTable({
   editSiteProfile,
   reloadDocuments,
   subjectUserId,
+  showOwner = false,
 }: DocumentTableProps) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] =
@@ -62,9 +65,13 @@ function DocumentTable({
     []
   );
 
-  const resumeHref = (id: string) => {
-    const base = `/dashboard/profile/resume/${id}`;
-    return subjectUserId ? `${base}?userId=${subjectUserId}` : base;
+  const scopedUserId = (doc: ProfileDocument) =>
+    isAllUsersScope(subjectUserId) ? doc.ownerUserId : subjectUserId;
+
+  const resumeHref = (doc: ProfileDocument) => {
+    const base = `/dashboard/profile/resume/${doc.id}`;
+    const userId = scopedUserId(doc);
+    return userId ? `${base}?userId=${userId}` : base;
   };
 
   const deleteDocument = async (doc: ProfileDocument) => {
@@ -79,12 +86,13 @@ function DocumentTable({
       });
     }
 
+    const ownerId = scopedUserId(doc);
     const { success, message } =
       doc.type === "resume"
-        ? await deleteResumeById(doc.id, doc.FileId, subjectUserId)
+        ? await deleteResumeById(doc.id, doc.FileId, ownerId)
         : doc.type === "cover-letter"
-          ? await deleteCoverLetterById(doc.id, subjectUserId)
-          : await deleteSiteProfileById(doc.id, subjectUserId);
+          ? await deleteCoverLetterById(doc.id, ownerId)
+          : await deleteSiteProfileById(doc.id, ownerId);
 
     if (success) {
       const label =
@@ -113,6 +121,9 @@ function DocumentTable({
         <TableHeader>
           <TableRow>
             <TableHead>Title</TableHead>
+            {showOwner ? (
+              <TableHead className="hidden lg:table-cell">User</TableHead>
+            ) : null}
             <TableHead>Type</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="hidden md:table-cell">Updated</TableHead>
@@ -133,7 +144,7 @@ function DocumentTable({
                 <TableCell className="font-medium">
                   {isResume ? (
                     <Link
-                      href={resumeHref(doc.id)}
+                      href={resumeHref(doc)}
                       className="flex items-center"
                     >
                       {doc.title}
@@ -157,6 +168,11 @@ function DocumentTable({
                     </button>
                   )}
                 </TableCell>
+                {showOwner ? (
+                  <TableCell className="hidden lg:table-cell">
+                    {doc.ownerName ?? "—"}
+                  </TableCell>
+                ) : null}
                 <TableCell>
                   <Badge
                     variant={
@@ -205,7 +221,7 @@ function DocumentTable({
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit Resume Title
                           </DropdownMenuItem>
-                          <Link href={resumeHref(doc.id)}>
+                          <Link href={resumeHref(doc)}>
                             <DropdownMenuItem className="cursor-pointer">
                               <FilePenLine className="mr-2 h-4 w-4" />
                               View/Edit Resume

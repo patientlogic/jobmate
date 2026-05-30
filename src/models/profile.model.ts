@@ -144,4 +144,6 @@ export interface ProfileDocument {
   content?: string;
   siteUrl?: string;
   email?: string;
+  ownerUserId?: string;
+  ownerName?: string;
 }

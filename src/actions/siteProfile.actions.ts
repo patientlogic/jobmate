@@ -4,6 +4,11 @@ import prisma from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/encryption";
 import { handleError } from "@/lib/utils";
 import { requireSubjectUserId } from "@/lib/admin-scope";
+import {
+  profileOwnerSelect,
+  profileOwnerWhere,
+  resolveProfileListScope,
+} from "@/lib/profile-list-scope";
 import { APP_CONSTANTS } from "@/lib/constants";
 
 export const getSiteProfileList = async (
@@ -12,16 +17,12 @@ export const getSiteProfileList = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const ownerId = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveProfileListScope(subjectUserId);
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       prisma.siteProfile.findMany({
-        where: {
-          profile: {
-            userId: ownerId,
-          },
-        },
+        where: profileOwnerWhere(isAllUsers, userId),
         skip,
         take: limit,
         select: {
@@ -32,17 +33,14 @@ export const getSiteProfileList = async (
           email: true,
           createdAt: true,
           updatedAt: true,
+          ...(isAllUsers ? profileOwnerSelect : {}),
         },
         orderBy: {
           createdAt: "desc",
         },
       }),
       prisma.siteProfile.count({
-        where: {
-          profile: {
-            userId: ownerId,
-          },
-        },
+        where: profileOwnerWhere(isAllUsers, userId),
       }),
     ]);
     return { data, total, success: true };

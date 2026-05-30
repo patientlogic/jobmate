@@ -2,6 +2,11 @@
 import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
 import { requireSubjectUserId } from "@/lib/admin-scope";
+import {
+  profileOwnerSelect,
+  profileOwnerWhere,
+  resolveProfileListScope,
+} from "@/lib/profile-list-scope";
 import { APP_CONSTANTS } from "@/lib/constants";
 
 export const getCoverLetterList = async (
@@ -10,16 +15,12 @@ export const getCoverLetterList = async (
   subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const ownerId = await requireSubjectUserId(subjectUserId);
+    const { isAllUsers, userId } = await resolveProfileListScope(subjectUserId);
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       prisma.coverLetter.findMany({
-        where: {
-          profile: {
-            userId: ownerId,
-          },
-        },
+        where: profileOwnerWhere(isAllUsers, userId),
         skip,
         take: limit,
         select: {
@@ -34,17 +35,14 @@ export const getCoverLetterList = async (
               Job: true,
             },
           },
+          ...(isAllUsers ? profileOwnerSelect : {}),
         },
         orderBy: {
           createdAt: "desc",
         },
       }),
       prisma.coverLetter.count({
-        where: {
-          profile: {
-            userId: ownerId,
-          },
-        },
+        where: profileOwnerWhere(isAllUsers, userId),
       }),
     ]);
     return { data, total, success: true };

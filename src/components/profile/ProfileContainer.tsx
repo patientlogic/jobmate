@@ -32,16 +32,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { ProfileSubjectProvider } from "./ProfileSubjectContext";
+import { AdminUserSelector } from "../admin/AdminUserSelector";
+import { ALL_USERS_SUBJECT_ID, isAllUsersScope } from "@/lib/admin-scope.constants";
 
 type ProfileContainerProps = {
   isAdmin?: boolean;
@@ -51,9 +44,24 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const rawUserId = isAdmin ? searchParams.get("userId") : null;
+  const isAllUsersView =
+    isAdmin && (!rawUserId || isAllUsersScope(rawUserId));
   const subjectUserId = isAdmin
-    ? searchParams.get("userId") ?? undefined
+    ? isAllUsersView
+      ? ALL_USERS_SUBJECT_ID
+      : rawUserId === "self"
+        ? undefined
+        : rawUserId ?? undefined
     : undefined;
+  const userSelectorValue = isAdmin
+    ? isAllUsersView
+      ? ALL_USERS_SUBJECT_ID
+      : rawUserId === "self"
+        ? "self"
+        : (rawUserId ?? ALL_USERS_SUBJECT_ID)
+    : "self";
+  const scopedSubjectUserId = isAllUsersView ? undefined : subjectUserId;
 
   const [users, setUsers] = useState<JobBidderSummary[]>([]);
   const [resumes, setResumes] = useState<Resume[]>([]);
@@ -77,7 +85,10 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
     APP_CONSTANTS.RECORDS_PER_PAGE,
   );
 
-  const selectedUser = users.find((u) => u.id === subjectUserId);
+  const selectedUser =
+    subjectUserId && !isAllUsersScope(subjectUserId)
+      ? users.find((u) => u.id === subjectUserId)
+      : undefined;
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -96,6 +107,8 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
   const onUserChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (value === "self") {
+      params.set("userId", "self");
+    } else if (value === ALL_USERS_SUBJECT_ID) {
       params.delete("userId");
     } else {
       params.set("userId", value);
@@ -103,6 +116,13 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
     const query = params.toString();
     router.replace(query ? `${pathname}?${query}` : pathname);
   };
+
+  const profileOwner = (item: {
+    profile?: { userId?: string; user?: { id: string; name: string } };
+  }) => ({
+    ownerUserId: item.profile?.userId ?? item.profile?.user?.id,
+    ownerName: item.profile?.user?.name,
+  });
 
   const loadResumes = useCallback(
     async (page: number) => {
@@ -192,6 +212,7 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
       updatedAt: r.updatedAt!,
       jobCount: r._count?.Job ?? 0,
       FileId: r.FileId,
+      ...profileOwner(r as { profile?: { userId?: string; user?: { id: string; name: string } } }),
     }));
     const coverLetterDocs: ProfileDocument[] = coverLetters.map((cl) => ({
       id: cl.id!,
@@ -201,6 +222,7 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
       updatedAt: cl.updatedAt!,
       jobCount: cl._count?.Job ?? 0,
       content: cl.content,
+      ...profileOwner(cl as { profile?: { userId?: string; user?: { id: string; name: string } } }),
     }));
     const siteProfileDocs: ProfileDocument[] = siteProfiles.map((sp) => ({
       id: sp.id!,
@@ -211,6 +233,7 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
       jobCount: 0,
       siteUrl: sp.siteUrl,
       email: sp.email,
+      ...profileOwner(sp as { profile?: { userId?: string; user?: { id: string; name: string } } }),
     }));
     return [...resumeDocs, ...coverLetterDocs, ...siteProfileDocs].sort(
       (a, b) =>
@@ -272,7 +295,13 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
             <div className="space-y-1">
               <CardTitle>Profile</CardTitle>
-              {isAdmin && subjectUserId && selectedUser ? (
+              {isAdmin && isAllUsersView ? (
+                <p className="text-sm text-muted-foreground">
+                  Viewing profiles for all users
+                </p>
+              ) : isAdmin && rawUserId === "self" ? (
+                <p className="text-sm text-muted-foreground">Viewing your profile</p>
+              ) : isAdmin && selectedUser ? (
                 <p className="text-sm text-muted-foreground">
                   Managing profile for {selectedUser.name}
                 </p>
@@ -280,29 +309,15 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {isAdmin ? (
-                <Select
-                  value={subjectUserId ?? "self"}
+                <AdminUserSelector
+                  users={users}
+                  value={userSelectorValue}
                   onValueChange={onUserChange}
-                >
-                  <SelectTrigger
-                    className="h-8 w-[200px]"
-                    aria-label="Select user profile"
-                  >
-                    <SelectValue placeholder="Select user" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>User</SelectLabel>
-                      <SelectItem value="self">My profile</SelectItem>
-                      {users.map((user) => (
-                        <SelectItem key={user.id} value={user.id}>
-                          {user.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+                  selfLabel="My profile"
+                  aria-label="Select user profile"
+                />
               ) : null}
+              {!isAllUsersView ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="sm" variant="outline" className="h-8 gap-1">
@@ -334,27 +349,28 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              ) : null}
               <CreateResume
                 resumeDialogOpen={resumeDialogOpen}
                 setResumeDialogOpen={setResumeDialogOpen}
                 reloadResumes={reloadDocuments}
                 resumeToEdit={resumeToEdit}
                 setNewResumeId={setResumeId}
-                subjectUserId={subjectUserId}
+                subjectUserId={scopedSubjectUserId}
               />
               <CreateCoverLetter
                 dialogOpen={coverLetterDialogOpen}
                 setDialogOpen={setCoverLetterDialogOpen}
                 coverLetterToEdit={coverLetterToEdit}
                 reloadDocuments={reloadDocuments}
-                subjectUserId={subjectUserId}
+                subjectUserId={scopedSubjectUserId}
               />
               <CreateSiteProfile
                 dialogOpen={siteProfileDialogOpen}
                 setDialogOpen={setSiteProfileDialogOpen}
                 siteProfileToEdit={siteProfileToEdit}
                 reloadDocuments={reloadDocuments}
-                subjectUserId={subjectUserId}
+                subjectUserId={scopedSubjectUserId}
               />
             </div>
           </div>
@@ -370,6 +386,7 @@ const ProfileContainer = ({ isAdmin = false }: ProfileContainerProps) => {
                 editSiteProfile={onEditSiteProfile}
                 reloadDocuments={reloadDocuments}
                 subjectUserId={subjectUserId}
+                showOwner={isAllUsersView}
               />
               <div className="flex items-center justify-between mt-4">
                 <RecordsCount
