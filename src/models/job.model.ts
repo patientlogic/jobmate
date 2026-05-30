@@ -70,6 +70,7 @@ export interface Company {
   value: string;
   createdBy: string;
   logoUrl?: string;
+  isGlobal?: boolean;
   _count?: {
     jobsApplied: number;
     jobsRejected?: number;

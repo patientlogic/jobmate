@@ -31,6 +31,7 @@ export const POST = async (req: NextRequest) => {
     const title = formData.get("title") as string;
     const file = formData.get("file") as File;
     const resumeId = (formData.get("id") as string) ?? null;
+    const subjectUserId = (formData.get("subjectUserId") as string) || undefined;
     let fileId: string | undefined =
       (formData.get("fileId") as string) ?? undefined;
     if (file && file.name) {
@@ -51,7 +52,8 @@ export const POST = async (req: NextRequest) => {
         title,
         fileId,
         file?.name,
-        filePath
+        filePath,
+        subjectUserId,
       );
       return NextResponse.json(res, { status: 200 });
     }
@@ -59,7 +61,8 @@ export const POST = async (req: NextRequest) => {
     const response = await createResumeProfile(
       title,
       file.name ?? null,
-      filePath
+      filePath,
+      subjectUserId,
     );
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

@@ -25,6 +25,7 @@ import { useEffect, useTransition } from "react";
 import { toast } from "../ui/use-toast";
 import { ContactInfo } from "@/models/profile.model";
 import { addContactInfo, updateContactInfo } from "@/actions/profile.actions";
+import { useProfileSubjectUserId } from "./ProfileSubjectContext";
 
 interface AddContactInfoProps {
   dialogOpen: boolean;
@@ -40,6 +41,7 @@ function AddContactInfo({
   resumeId,
 }: AddContactInfoProps) {
   const [isPending, startTransition] = useTransition();
+  const subjectUserId = useProfileSubjectUserId();
 
   const pageTitle = contactInfoToEdit
     ? "Edit Contact Info"
@@ -77,8 +79,8 @@ function AddContactInfo({
   const onSubmit = (data: z.infer<typeof AddContactInfoFormSchema>) => {
     startTransition(async () => {
       const res = contactInfoToEdit
-        ? await updateContactInfo(data)
-        : await addContactInfo(data);
+        ? await updateContactInfo(data, subjectUserId)
+        : await addContactInfo(data, subjectUserId);
       if (!res.success) {
         toast({
           variant: "destructive",

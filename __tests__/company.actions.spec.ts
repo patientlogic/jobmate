@@ -6,7 +6,7 @@ import {
   getCompanyList,
   updateCompany,
 } from "@/actions/company.actions";
-import { getCurrentUser } from "@/utils/user.utils";
+import { getCurrentUser, getViewerContext } from "@/utils/user.utils";
 import { revalidatePath } from "next/cache";
 import { PrismaClient } from "@prisma/client";
 
@@ -41,6 +41,7 @@ vi.mock("@prisma/client", () => {
 
 vi.mock("@/utils/user.utils", () => ({
   getCurrentUser: vi.fn(),
+  getViewerContext: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({
@@ -49,13 +50,25 @@ vi.mock("next/cache", () => ({
 
 describe("Company Actions", () => {
   const mockUser = { id: "user-id" };
+  const mockViewer = {
+    id: "user-id",
+    name: "User",
+    email: "user@test.com",
+    role: "USER",
+  };
+  const mockAdmin = {
+    id: "admin-id",
+    name: "Admin",
+    email: "admin@test.com",
+    role: "ADMIN",
+  };
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
   describe("getCompanyList", () => {
     it("should return company list for authenticated user", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
       const mockData = [
         {
           id: "company-id",
@@ -73,18 +86,15 @@ describe("Company Actions", () => {
 
       expect(result).toEqual({ data: mockData, total: mockTotal });
       expect(prisma.company.findMany).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
         skip: 0,
         take: 10,
         orderBy: { jobsApplied: { _count: "desc" } },
       });
-      expect(prisma.company.count).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
-      });
+      expect(prisma.company.count).toHaveBeenCalledWith();
     });
 
     it("should throw an error for unauthenticated user", async () => {
-      (getCurrentUser as any).mockResolvedValue(null);
+      (getViewerContext as any).mockResolvedValue(null);
 
       await expect(getCompanyList(1, 10)).resolves.toStrictEqual({
         success: false,
@@ -96,7 +106,7 @@ describe("Company Actions", () => {
     });
 
     it("should filter by status when countBy is provided", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
       const mockData = [
         {
           id: "company-id",
@@ -119,7 +129,6 @@ describe("Company Actions", () => {
       }));
       expect(result).toEqual({ data: expectedData, total: mockTotal });
       expect(prisma.company.findMany).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
         skip: 0,
         take: 10,
         select: {
@@ -127,6 +136,8 @@ describe("Company Actions", () => {
           label: true,
           value: true,
           logoUrl: true,
+          isGlobal: true,
+          createdBy: true,
           _count: {
             select: {
               jobsApplied: {
@@ -139,13 +150,11 @@ describe("Company Actions", () => {
         },
         orderBy: { jobsApplied: { _count: "desc" } },
       });
-      expect(prisma.company.count).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
-      });
+      expect(prisma.company.count).toHaveBeenCalledWith();
     });
 
     it("should handle errors", async () => {
-      (getCurrentUser as any).mockRejectedValue(new Error("Database error"));
+      (getViewerContext as any).mockRejectedValue(new Error("Database error"));
 
       await expect(getCompanyList(1, 10)).resolves.toStrictEqual({
         success: false,
@@ -171,7 +180,9 @@ describe("Company Actions", () => {
 
       expect(result).toEqual(mockCompanies);
       expect(prisma.company.findMany).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
+        orderBy: {
+          label: "asc",
+        },
       });
     });
 
@@ -196,7 +207,9 @@ describe("Company Actions", () => {
 
       expect(result).toEqual({ success: false, message: "Unexpected error" });
       expect(prisma.company.findMany).toHaveBeenCalledWith({
-        where: { createdBy: mockUser.id },
+        orderBy: {
+          label: "asc",
+        },
       });
     });
   });
@@ -208,7 +221,7 @@ describe("Company Actions", () => {
     };
 
     it("should create a new company successfully", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
       (prisma.company.findFirst as any).mockResolvedValue(null);
       const mockCompany = {
         id: "company-id",
@@ -218,14 +231,14 @@ describe("Company Actions", () => {
         createdBy: mockUser.id,
       };
       (prisma.company.create as any).mockResolvedValue(mockCompany);
-      // Mock revalidatePath to prevent any errors during the test
       (revalidatePath as any).mockResolvedValue(undefined);
 
       const result = await addCompany(validData);
 
       expect(result).toEqual({ success: true, data: mockCompany });
       expect(prisma.company.findFirst).toHaveBeenCalledWith({
-        where: { value: "new company", createdBy: mockUser.id },
+        where: { value: "new company" },
+        orderBy: [{ isGlobal: "desc" }, { label: "asc" }],
       });
       expect(prisma.company.create).toHaveBeenCalledWith({
         data: {
@@ -233,13 +246,34 @@ describe("Company Actions", () => {
           value: "new company",
           label: "New Company",
           logoUrl: "http://example.com/logo.png",
+          isGlobal: false,
         },
       });
       expect(revalidatePath).toHaveBeenCalledWith("/dashboard/myjobs", "page");
     });
 
+    it("should create a global company for admin catalog", async () => {
+      (getViewerContext as any).mockResolvedValue(mockAdmin);
+      (prisma.company.findFirst as any).mockResolvedValue(null);
+      (prisma.company.create as any).mockResolvedValue({
+        id: "global-company-id",
+        isGlobal: true,
+      });
+      (revalidatePath as any).mockResolvedValue(undefined);
+
+      const result = await addCompany(validData, { globalCatalog: true });
+
+      expect(result.success).toBe(true);
+      expect(prisma.company.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          isGlobal: true,
+          createdBy: mockAdmin.id,
+        }),
+      });
+    });
+
     it("should return an error if the user is not authenticated", async () => {
-      (getCurrentUser as any).mockResolvedValue(null);
+      (getViewerContext as any).mockResolvedValue(null);
 
       const result = await addCompany(validData);
 
@@ -248,30 +282,31 @@ describe("Company Actions", () => {
       expect(prisma.company.create).not.toHaveBeenCalled();
     });
 
-    it("should return an error if the company already exists", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+    it("should return existing company when duplicate value exists", async () => {
+      (getViewerContext as any).mockResolvedValue(mockViewer);
       const mockExistingCompany = {
         id: "existing-company-id",
         ...validData,
         value: "new company",
-        createdBy: mockUser.id,
+        createdBy: "other-user",
       };
       (prisma.company.findFirst as any).mockResolvedValue(mockExistingCompany);
 
       const result = await addCompany(validData);
 
       expect(result).toEqual({
-        success: false,
-        message: "Company already exists!",
+        success: true,
+        data: mockExistingCompany,
       });
       expect(prisma.company.findFirst).toHaveBeenCalledWith({
-        where: { value: "new company", createdBy: mockUser.id },
+        where: { value: "new company" },
+        orderBy: [{ isGlobal: "desc" }, { label: "asc" }],
       });
       expect(prisma.company.create).not.toHaveBeenCalled();
     });
 
     it("should handle unexpected errors", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
       (prisma.company.findFirst as any).mockRejectedValue(
         new Error("Unexpected error"),
       );
@@ -280,13 +315,14 @@ describe("Company Actions", () => {
 
       expect(result).toEqual({ success: false, message: "Unexpected error" });
       expect(prisma.company.findFirst).toHaveBeenCalledWith({
-        where: { value: "new company", createdBy: mockUser.id },
+        where: { value: "new company" },
+        orderBy: [{ isGlobal: "desc" }, { label: "asc" }],
       });
       expect(prisma.company.create).not.toHaveBeenCalled();
     });
 
     it("should return error if logo URL is invalid", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
 
       const invalidData = {
         company: "New Company",
@@ -376,8 +412,12 @@ describe("Company Actions", () => {
     };
 
     it("should update a company successfully", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
 
+      (prisma.company.findUnique as any).mockResolvedValue({
+        isGlobal: false,
+        createdBy: mockUser.id,
+      });
       (prisma.company.findFirst as any).mockResolvedValue(null);
 
       const mockUpdatedCompany = {
@@ -392,11 +432,14 @@ describe("Company Actions", () => {
       expect(result).toEqual({ success: true, data: mockUpdatedCompany });
 
       expect(prisma.company.findFirst).toHaveBeenCalledWith({
-        where: { value: "updated company", createdBy: mockUser.id },
+        where: {
+          value: "updated company",
+          id: { not: "company-id" },
+        },
       });
 
       expect(prisma.company.update).toHaveBeenCalledWith({
-        where: { id: "company-id", createdBy: "user-id" },
+        where: { id: "company-id" },
         data: {
           value: "updated company",
           label: "Updated Company",
@@ -406,7 +449,7 @@ describe("Company Actions", () => {
     });
 
     it("should return error if user is not authenticated", async () => {
-      (getCurrentUser as any).mockResolvedValue(null);
+      (getViewerContext as any).mockResolvedValue(null);
 
       const result = await updateCompany(validData);
 
@@ -519,14 +562,14 @@ describe("Company Actions", () => {
     };
 
     it("should fetch company by id successfully", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
 
       (prisma.company.findUnique as any).mockResolvedValue(mockCompany);
 
       const result = await getCompanyById(mockCompanyId);
 
       expect(prisma.company.findUnique).toHaveBeenCalledWith({
-        where: { id: mockCompanyId, createdBy: "user-id" },
+        where: { id: mockCompanyId },
       });
 
       expect(result).toEqual(mockCompany);
@@ -542,7 +585,7 @@ describe("Company Actions", () => {
     });
 
     it("should throw error when user is not authenticated", async () => {
-      (getCurrentUser as any).mockResolvedValue(null);
+      (getViewerContext as any).mockResolvedValue(null);
 
       await expect(getCompanyById(mockCompanyId)).resolves.toStrictEqual({
         success: false,
@@ -553,7 +596,7 @@ describe("Company Actions", () => {
     });
 
     it("should handle unexpected errors", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
       (prisma.company.findUnique as any).mockRejectedValue(
         new Error("Unexpected error"),
       );
@@ -564,14 +607,18 @@ describe("Company Actions", () => {
       });
 
       expect(prisma.company.findUnique).toHaveBeenCalledWith({
-        where: { id: mockCompanyId, createdBy: "user-id" },
+        where: { id: mockCompanyId },
       });
     });
   });
 
   describe("deleteCompanyById", () => {
     it("should delete a company successfully", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
+      (prisma.company.findUnique as any).mockResolvedValue({
+        isGlobal: false,
+        createdBy: mockUser.id,
+      });
       (prisma.workExperience.count as any).mockResolvedValue(0);
       (prisma.job.count as any).mockResolvedValue(0);
       const mockDeleted = { id: "company-id", label: "Test Company" };
@@ -581,12 +628,12 @@ describe("Company Actions", () => {
 
       expect(result).toEqual({ res: mockDeleted, success: true });
       expect(prisma.company.delete).toHaveBeenCalledWith({
-        where: { id: "company-id", createdBy: mockUser.id },
+        where: { id: "company-id" },
       });
     });
 
     it("should return error for unauthenticated user", async () => {
-      (getCurrentUser as any).mockResolvedValue(null);
+      (getViewerContext as any).mockResolvedValue(null);
 
       const result = await deleteCompanyById("company-id");
 
@@ -595,7 +642,11 @@ describe("Company Actions", () => {
     });
 
     it("should prevent deletion when work experiences exist", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
+      (prisma.company.findUnique as any).mockResolvedValue({
+        isGlobal: false,
+        createdBy: mockUser.id,
+      });
       (prisma.workExperience.count as any).mockResolvedValue(1);
 
       const result = await deleteCompanyById("company-id");
@@ -610,7 +661,11 @@ describe("Company Actions", () => {
     });
 
     it("should prevent deletion when associated jobs exist", async () => {
-      (getCurrentUser as any).mockResolvedValue(mockUser);
+      (getViewerContext as any).mockResolvedValue(mockViewer);
+      (prisma.company.findUnique as any).mockResolvedValue({
+        isGlobal: false,
+        createdBy: mockUser.id,
+      });
       (prisma.workExperience.count as any).mockResolvedValue(0);
       (prisma.job.count as any).mockResolvedValue(3);
 

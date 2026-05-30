@@ -21,10 +21,12 @@ import TiptapEditor from "../TiptapEditor";
 
 type NotesCollapsibleSectionProps = {
   jobId: string;
+  subjectUserId?: string;
 };
 
 export function NotesCollapsibleSection({
   jobId,
+  subjectUserId,
 }: NotesCollapsibleSectionProps) {
   const [notes, setNotes] = useState<NoteResponse[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -35,11 +37,11 @@ export function NotesCollapsibleSection({
   const [isPending, startTransition] = useTransition();
 
   const loadNotes = useCallback(async () => {
-    const result = await getNotesByJobId(jobId);
+    const result = await getNotesByJobId(jobId, subjectUserId);
     if (result.success) {
       setNotes(result.data);
     }
-  }, [jobId]);
+  }, [jobId, subjectUserId]);
 
   useEffect(() => {
     loadNotes();
@@ -69,12 +71,15 @@ export function NotesCollapsibleSection({
 
     startTransition(async () => {
       const result = editingNote
-        ? await updateNote({
-            id: editingNote.id,
-            jobId,
-            content: editorContent,
-          })
-        : await addNote({ jobId, content: editorContent });
+        ? await updateNote(
+            {
+              id: editingNote.id,
+              jobId,
+              content: editorContent,
+            },
+            subjectUserId,
+          )
+        : await addNote({ jobId, content: editorContent }, subjectUserId);
 
       if (result.success) {
         toast({
@@ -101,7 +106,7 @@ export function NotesCollapsibleSection({
     if (!deleteConfirmId) return;
 
     startTransition(async () => {
-      const result = await deleteNote(deleteConfirmId);
+      const result = await deleteNote(deleteConfirmId, jobId, subjectUserId);
       if (result.success) {
         toast({
           variant: "success",

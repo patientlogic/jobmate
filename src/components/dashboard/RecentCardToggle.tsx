@@ -69,9 +69,9 @@ export default function RecentCardToggle({
         {activeIndex === 0
           ? jobs.map((job) => (
               <div key={job.id} className="flex items-center gap-4">
-                <Avatar className="hidden h-8 w-8 sm:flex">
+                <Avatar className="hidden h-8 w-8 sm:flex object-contain">
                   <AvatarImage
-                    src={job.Company?.logoUrl || "/images/jobmate-logo.svg"}
+                    src={job.Company?.logoUrl || "/logo.png"}
                     alt="Avatar"
                   />
                   <AvatarFallback>JS</AvatarFallback>

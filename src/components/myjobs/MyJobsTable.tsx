@@ -37,6 +37,7 @@ import { JobResponse, JobStatus } from "@/models/job.model";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
+import { buildMyJobDetailPath } from "./JobsSubjectContext";
 
 type MyJobsTableProps = {
   jobs: JobResponse[];
@@ -45,6 +46,7 @@ type MyJobsTableProps = {
   editJob: (id: string) => void;
   onChangeJobStatus: (id: string, status: JobStatus) => void;
   onAddNote: (jobId: string) => void;
+  subjectUserId?: string;
 };
 
 function MyJobsTable({
@@ -54,13 +56,14 @@ function MyJobsTable({
   editJob,
   onChangeJobStatus,
   onAddNote,
+  subjectUserId,
 }: MyJobsTableProps) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [jobIdToDelete, setJobIdToDelete] = useState("");
 
   const router = useRouter();
   const viewJobDetails = (jobId: string) => {
-    router.push(`/dashboard/myjobs/${jobId}`);
+    router.push(buildMyJobDetailPath(jobId, subjectUserId));
   };
 
   const onDeleteJob = (jobId: string) => {
@@ -96,8 +99,8 @@ function MyJobsTable({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     alt="Company logo"
-                    className="aspect-square rounded-md object-cover h-8 w-8"
-                    src={job.Company?.logoUrl || "/images/jobmate-logo.svg"}
+                    className="aspect-square rounded-md h-8 w-8 object-contain"
+                    src={job.Company?.logoUrl || "/logo.png"}
                   />
                 </TableCell>
                 <TableCell className="hidden md:table-cell w-[120px]">
@@ -107,7 +110,10 @@ function MyJobsTable({
                   className="font-medium cursor-pointer max-w-[120px] sm:max-w-none"
                 >
                   <div className="flex items-center gap-1.5">
-                    <Link href={`/dashboard/myjobs/${job?.id}`} className="block truncate">
+                    <Link
+                      href={buildMyJobDetailPath(job.id, subjectUserId)}
+                      className="block truncate"
+                    >
                       {job.JobTitle?.label}
                     </Link>
                     {(job._count?.Notes ?? 0) > 0 && (

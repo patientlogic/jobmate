@@ -12,7 +12,7 @@ import {
 } from "@/actions/job.actions";
 import { getMockJobDetails, getMockJobsList } from "@/lib/mock.utils";
 import { JobResponse } from "@/models/job.model";
-import { getCurrentUser } from "@/utils/user.utils";
+import { getCurrentUser, getViewerContext } from "@/utils/user.utils";
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
@@ -30,6 +30,7 @@ vi.mock("@prisma/client", () => {
     job: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
+      findFirst: vi.fn(),
       count: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
@@ -47,10 +48,12 @@ vi.mock("@prisma/client", () => {
 
 vi.mock("@/utils/user.utils", () => ({
   getCurrentUser: vi.fn(),
+  getViewerContext: vi.fn(),
 }));
 
 describe("jobActions", () => {
   const mockUser = { id: "user-id" };
+  const mockViewer = { id: "user-id", name: "User", email: "user@test.com", role: "USER" };
   const jobData = {
     id: "job-id",
     title: "job-title-id",
@@ -636,7 +639,7 @@ describe("jobActions", () => {
       });
     });
     it("should throw error when user is not authenticated", async () => {
-      (getCurrentUser as any).mockResolvedValue(null);
+      (getViewerContext as any).mockResolvedValue(null);
 
       await expect(getJobDetails("job123")).resolves.toStrictEqual({
         success: false,
@@ -645,14 +648,14 @@ describe("jobActions", () => {
     });
   });
   it("should return job details on successful query", async () => {
-    (getCurrentUser as any).mockResolvedValue(mockUser);
+    (getViewerContext as any).mockResolvedValue(mockViewer);
     const mockJob = await getMockJobDetails("2");
-    (prisma.job.findUnique as any).mockResolvedValue(mockJob);
+    (prisma.job.findFirst as any).mockResolvedValue(mockJob);
 
     const result = await getJobDetails("2");
 
     expect(result).toStrictEqual({ job: mockJob, success: true });
-    expect(prisma.job.findUnique).toHaveBeenCalledWith({
+    expect(prisma.job.findFirst).toHaveBeenCalledWith({
       where: {
         id: "2",
         userId: "user-id",
@@ -675,9 +678,9 @@ describe("jobActions", () => {
   });
 
   it("should handle unexpected errors", async () => {
-    (getCurrentUser as any).mockResolvedValue({ id: "user123" });
+    (getViewerContext as any).mockResolvedValue(mockViewer);
 
-    (prisma.job.findUnique as any).mockRejectedValue(
+    (prisma.job.findFirst as any).mockRejectedValue(
       new Error("Unexpected error"),
     );
 
@@ -687,7 +690,7 @@ describe("jobActions", () => {
     });
   });
   it("should throw error when user is not authenticated", async () => {
-    (getCurrentUser as any).mockResolvedValue(null);
+    (getViewerContext as any).mockResolvedValue(null);
 
     await expect(getJobDetails("job123")).resolves.toStrictEqual({
       success: false,

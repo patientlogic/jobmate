@@ -11,7 +11,7 @@ import { Button } from "../ui/button";
 import { RecordsPerPageSelector } from "../RecordsPerPageSelector";
 import { RecordsCount } from "../RecordsCount";
 
-function CompaniesContainer() {
+function CompaniesContainer({ globalCatalog = false }: { globalCatalog?: boolean }) {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [totalCompanies, setTotalCompanies] = useState<number>(0);
   const [page, setPage] = useState<number>(1);
@@ -28,7 +28,8 @@ function CompaniesContainer() {
       const { data, total } = await getCompanyList(
         page,
         recordsPerPage,
-        "applied"
+        "applied",
+        { globalCatalog },
       );
       if (data) {
         setCompanies((prev) => (page === 1 ? data : [...prev, ...data]));
@@ -37,7 +38,7 @@ function CompaniesContainer() {
         setLoading(false);
       }
     },
-    [recordsPerPage]
+    [recordsPerPage, globalCatalog],
   );
 
   const reloadCompanies = useCallback(async () => {
@@ -53,7 +54,7 @@ function CompaniesContainer() {
   }, [loadCompanies, recordsPerPage]);
 
   const onEditCompany = async (companyId: string) => {
-    const company = await getCompanyById(companyId);
+    const company = await getCompanyById(companyId, { globalCatalog });
     setEditCompany(company);
     setDialogOpen(true);
   };
@@ -72,6 +73,7 @@ function CompaniesContainer() {
                   resetEditCompany={resetEditCompany}
                   dialogOpen={dialogOpen}
                   setDialogOpen={setDialogOpen}
+                  globalCatalog={globalCatalog}
                 />
               </div>
             </div>
@@ -84,6 +86,7 @@ function CompaniesContainer() {
                   companies={companies}
                   reloadCompanies={reloadCompanies}
                   editCompany={onEditCompany}
+                  globalCatalog={globalCatalog}
                 />
                 <div className="flex items-center justify-between mt-4">
                   <RecordsCount

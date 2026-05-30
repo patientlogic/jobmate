@@ -28,12 +28,14 @@ type CompaniesTableProps = {
   companies: Company[];
   reloadCompanies: () => void;
   editCompany: (id: string) => void;
+  globalCatalog?: boolean;
 };
 
 function CompaniesTable({
   companies,
   reloadCompanies,
   editCompany,
+  globalCatalog = false,
 }: CompaniesTableProps) {
   const [alert, setAlert] = useState<AlertDialog>({
     openState: false,
@@ -60,7 +62,9 @@ function CompaniesTable({
 
   const deleteCompany = async (companyId: string | undefined) => {
     if (companyId) {
-      const { res, success, message } = await deleteCompanyById(companyId);
+      const { res, success, message } = await deleteCompanyById(companyId, {
+        globalCatalog,
+      });
       if (success) {
         toast({
           variant: "success",
@@ -103,8 +107,8 @@ function CompaniesTable({
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     alt="Company logo"
-                    className="w-8 h-8 rounded-md object-cover"
-                    src={company.logoUrl || "/images/jobmate-logo.svg"}
+                    className="w-8 h-8 rounded-md object-contain"
+                    src={company.logoUrl || "/logo.png"}
                   />
                 </TableCell>
                 <TableCell className="font-medium">{company.label}</TableCell>

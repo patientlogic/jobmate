@@ -2,6 +2,7 @@ import "server-only";
 
 import prisma from "@/lib/db";
 import type { UserRole } from "@prisma/client";
+import { getViewerContext } from "@/utils/user.utils";
 
 /**
  * Resolve which user's data to load for dashboard/jobs reads.
@@ -28,4 +29,19 @@ export async function resolveScopedUserId(params: {
     throw new Error("User not found");
   }
   return user.id;
+}
+
+/** Authenticated owner id for reads/writes; admins may pass another user's id. */
+export async function requireSubjectUserId(
+  subjectUserId?: string | null,
+): Promise<string> {
+  const viewer = await getViewerContext();
+  if (!viewer) {
+    throw new Error("Not authenticated");
+  }
+  return resolveScopedUserId({
+    viewerId: viewer.id,
+    viewerRole: viewer.role,
+    subjectUserId,
+  });
 }

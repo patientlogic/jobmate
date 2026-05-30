@@ -57,10 +57,18 @@ const transformJobData = (
   };
 };
 
-export const POST = async () => {
+export const POST = async (req: Request) => {
   const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  let subjectUserId: string | undefined;
+  try {
+    const body = await req.json();
+    subjectUserId = body?.subjectUserId;
+  } catch {
+    subjectUserId = undefined;
   }
 
   const passThrough = new PassThrough();
@@ -70,7 +78,7 @@ export const POST = async () => {
   (async () => {
     try {
       let recordIndex = 0;
-      for await (const chunk of getJobsIterator()) {
+      for await (const chunk of getJobsIterator(undefined, 200, subjectUserId)) {
         if (hasError) break;
         const transformedData = chunk.map((job, idx) =>
           transformJobData(job, recordIndex + idx)

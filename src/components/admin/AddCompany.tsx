@@ -33,6 +33,7 @@ type AddCompanyProps = {
   resetEditCompany: () => void;
   dialogOpen: boolean;
   setDialogOpen: (e: boolean) => void;
+  globalCatalog?: boolean;
 };
 
 function AddCompany({
@@ -41,6 +42,7 @@ function AddCompany({
   resetEditCompany,
   dialogOpen,
   setDialogOpen,
+  globalCatalog = false,
 }: AddCompanyProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -85,8 +87,8 @@ function AddCompany({
   const onSubmit = (data: z.infer<typeof AddCompanyFormSchema>) => {
     startTransition(async () => {
       const res = editCompany
-        ? await updateCompany(data)
-        : await addCompany(data);
+        ? await updateCompany(data, { globalCatalog })
+        : await addCompany(data, { globalCatalog });
       if (!res?.success) {
         toast({
           variant: "destructive",
@@ -126,8 +128,9 @@ function AddCompany({
           <DialogHeader>
             <DialogTitle>{pageTitle}</DialogTitle>
             <DialogDescription className="text-primary">
-              Caution: Editing name of the company will affect all the related
-              job records.
+              {globalCatalog
+                ? "Companies are shared across all job seekers. Admins can manage any company in this list."
+                : "Caution: Editing name of the company will affect all the related job records."}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>

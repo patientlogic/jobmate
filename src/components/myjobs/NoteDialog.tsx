@@ -31,6 +31,7 @@ type NoteDialogProps = {
   jobId: string;
   editNote?: NoteResponse | null;
   onSaved: () => void;
+  subjectUserId?: string;
 };
 
 export function NoteDialog({
@@ -39,6 +40,7 @@ export function NoteDialog({
   jobId,
   editNote,
   onSaved,
+  subjectUserId,
 }: NoteDialogProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -61,8 +63,8 @@ export function NoteDialog({
   function onSubmit(data: z.infer<typeof NoteFormSchema>) {
     startTransition(async () => {
       const result = editNote
-        ? await updateNote(data)
-        : await addNote(data);
+        ? await updateNote(data, subjectUserId)
+        : await addNote(data, subjectUserId);
 
       if (result.success) {
         toast({

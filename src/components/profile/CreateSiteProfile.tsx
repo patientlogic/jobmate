@@ -36,6 +36,7 @@ type CreateSiteProfileProps = {
   setDialogOpen: (open: boolean) => void;
   siteProfileToEdit?: SiteProfile | null;
   reloadDocuments: () => void;
+  subjectUserId?: string;
 };
 
 function CreateSiteProfile({
@@ -43,6 +44,7 @@ function CreateSiteProfile({
   setDialogOpen,
   siteProfileToEdit,
   reloadDocuments,
+  subjectUserId,
 }: CreateSiteProfileProps) {
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
@@ -89,7 +91,7 @@ function CreateSiteProfile({
 
       if (!value && siteProfileToEdit?.id) {
         const { success, password: storedPassword, message } =
-          await getSiteProfilePassword(siteProfileToEdit.id);
+          await getSiteProfilePassword(siteProfileToEdit.id, subjectUserId);
 
         if (!success || !storedPassword) {
           toast({
@@ -144,12 +146,14 @@ function CreateSiteProfile({
             data.accountName,
             data.email,
             data.password?.trim() || undefined,
+            subjectUserId,
           )
         : await createSiteProfile(
             data.siteUrl,
             data.accountName,
             data.email,
             data.password!,
+            subjectUserId,
           );
 
       if (!success) {

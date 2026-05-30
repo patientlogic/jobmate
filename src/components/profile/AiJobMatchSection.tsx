@@ -42,6 +42,7 @@ interface AiSectionProps {
   triggerChange: (openState: boolean) => void;
   jobId: string;
   onMatchSaved?: (matchScore: number, matchData: string) => void;
+  subjectUserId?: string;
 }
 
 export const AiJobMatchSection = ({
@@ -49,6 +50,7 @@ export const AiJobMatchSection = ({
   triggerChange,
   jobId,
   onMatchSaved,
+  subjectUserId,
 }: AiSectionProps) => {
   const [selectedResumeId, setSelectedResumeId] = useState<string>();
   const [ollamaConnected, setOllamaConnected] = useState<boolean | null>(null);
@@ -115,7 +117,7 @@ export const AiJobMatchSection = ({
     });
     const score = object.matchScore;
 
-    saveJobMatchResult(jobId, score, matchData).then((result) => {
+    saveJobMatchResult(jobId, score, matchData, subjectUserId).then((result) => {
       if (result?.success) {
         onMatchSaved?.(score, matchData);
         toast({ title: "Match result saved" });
@@ -127,11 +129,15 @@ export const AiJobMatchSection = ({
         });
       }
     });
-  }, [isLoading, object, jobId, selectedResumeId, onMatchSaved]);
+  }, [isLoading, object, jobId, selectedResumeId, onMatchSaved, subjectUserId]);
 
   const getResumes = async () => {
     try {
-      const { data, success, message } = await getResumeList();
+      const { data, success, message } = await getResumeList(
+        1,
+        undefined,
+        subjectUserId,
+      );
       if (!data || data.length === 0) {
         return;
       }

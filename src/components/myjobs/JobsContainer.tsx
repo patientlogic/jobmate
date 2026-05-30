@@ -45,8 +45,14 @@ import { NoteDialog } from "./NoteDialog";
 import { format } from "date-fns";
 import { RecordsPerPageSelector } from "../RecordsPerPageSelector";
 import { RecordsCount } from "../RecordsCount";
+import {
+  listJobBidders,
+  type JobBidderSummary,
+} from "@/actions/site-admin.actions";
+import { JobsSubjectProvider } from "./JobsSubjectContext";
 
 type MyJobsProps = {
+  isAdmin?: boolean;
   statuses: JobStatus[];
   companies: Company[];
   titles: JobTitle[];
@@ -56,6 +62,7 @@ type MyJobsProps = {
 };
 
 function JobsContainer({
+  isAdmin = false,
   statuses,
   companies,
   titles,
@@ -66,6 +73,10 @@ function JobsContainer({
   const router = useRouter();
   const pathname = usePathname();
   const queryParams = useSearchParams();
+  const subjectUserId = isAdmin
+    ? queryParams.get("userId") ?? undefined
+    : undefined;
+  const [users, setUsers] = useState<JobBidderSummary[]>([]);
   const createQueryString = useCallback(
     (name: string, value: string) => {
       const params = new URLSearchParams(queryParams.toString());
@@ -122,6 +133,33 @@ function JobsContainer({
     ? sources.find((s) => s.value === sourceFilter)?.label
     : null;
 
+  const selectedUser = users.find((u) => u.id === subjectUserId);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    listJobBidders()
+      .then(setUsers)
+      .catch(() => {
+        toast({
+          variant: "destructive",
+          title: "Error!",
+          description: "Failed to load users.",
+        });
+      });
+  }, [isAdmin]);
+
+  const onUserChange = (value: string) => {
+    const params = new URLSearchParams(queryParams.toString());
+    if (value === "self") {
+      params.delete("userId");
+    } else {
+      params.set("userId", value);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  };
+
   const clearCompanyFilter = () => {
     setCompanyFilter(null);
     setAppliedFilter(false);
@@ -175,6 +213,7 @@ function JobsContainer({
         titleFilter || undefined,
         locationFilter || undefined,
         sourceFilter || undefined,
+        subjectUserId,
       );
       if (success && data) {
         setJobs((prev) => (page === 1 ? data : [...prev, ...data]));
@@ -190,7 +229,7 @@ function JobsContainer({
       setInitialLoading(false);
       setLoadingMore(false);
     },
-    [jobsPerPage, companyFilter, appliedFilter, titleFilter, locationFilter, sourceFilter],
+    [jobsPerPage, companyFilter, appliedFilter, titleFilter, locationFilter, sourceFilter, subjectUserId],
   );
 
   const reloadJobs = useCallback(async () => {
@@ -201,7 +240,7 @@ function JobsContainer({
   }, [loadJobs, filterKey, searchTerm]);
 
   const onDeleteJob = async (jobId: string) => {
-    const { res, success, message } = await deleteJobById(jobId);
+    const { res, success, message } = await deleteJobById(jobId, subjectUserId);
     if (success) {
       toast({
         variant: "success",
@@ -218,7 +257,7 @@ function JobsContainer({
   };
 
   const onEditJob = async (jobId: string) => {
-    const { job, success, message } = await getJobDetails(jobId);
+    const { job, success, message } = await getJobDetails(jobId, subjectUserId);
     if (!success) {
       toast({
         variant: "destructive",
@@ -231,7 +270,11 @@ function JobsContainer({
   };
 
   const onChangeJobStatus = async (jobId: string, jobStatus: JobStatus) => {
-    const { success, message } = await updateJobStatus(jobId, jobStatus);
+    const { success, message } = await updateJobStatus(
+      jobId,
+      jobStatus,
+      subjectUserId,
+    );
     if (success) {
       router.refresh();
       toast({
@@ -322,8 +365,9 @@ function JobsContainer({
       const res = await fetch("/api/jobs/export", {
         method: "POST",
         headers: {
-          "Content-Type": "text/csv",
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({ subjectUserId }),
       });
       if (!res.ok) {
         throw new Error("Failed to download jobs!");
@@ -351,11 +395,42 @@ function JobsContainer({
   };
 
   return (
-    <>
+    <JobsSubjectProvider subjectUserId={subjectUserId}>
       <Card x-chunk="dashboard-06-chunk-0">
         <CardHeader className="flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
-          <CardTitle>My Jobs</CardTitle>
+          <div className="space-y-1">
+            <CardTitle>My Jobs</CardTitle>
+            {isAdmin && subjectUserId && selectedUser ? (
+              <p className="text-sm text-muted-foreground">
+                Managing jobs for {selectedUser.name}
+              </p>
+            ) : null}
+          </div>
           <div className="flex flex-wrap items-center gap-2">
+            {isAdmin ? (
+              <Select
+                value={subjectUserId ?? "self"}
+                onValueChange={onUserChange}
+              >
+                <SelectTrigger
+                  className="h-8 w-[200px]"
+                  aria-label="Select user jobs"
+                >
+                  <SelectValue placeholder="Select user" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel>User</SelectLabel>
+                    <SelectItem value="self">My jobs</SelectItem>
+                    {users.map((user) => (
+                      <SelectItem key={user.id} value={user.id}>
+                        {user.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            ) : null}
             {companyLabel && (
               <button
                 onClick={clearCompanyFilter}
@@ -441,6 +516,7 @@ function JobsContainer({
               tags={tags}
               editJob={editJob}
               resetEditJob={resetEditJob}
+              subjectUserId={subjectUserId}
             />
           </div>
         </CardHeader>
@@ -455,6 +531,7 @@ function JobsContainer({
                 editJob={onEditJob}
                 onChangeJobStatus={onChangeJobStatus}
                 onAddNote={onAddNote}
+                subjectUserId={subjectUserId}
               />
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4">
                 <RecordsCount
@@ -486,8 +563,9 @@ function JobsContainer({
         onOpenChange={setNoteDialogOpen}
         jobId={noteJobId}
         onSaved={() => reloadJobs()}
+        subjectUserId={subjectUserId}
       />
-    </>
+    </JobsSubjectProvider>
   );
 }
 

@@ -31,6 +31,7 @@ type CreateResumeProps = {
   resumeToEdit?: Resume | null;
   reloadResumes: () => void;
   setNewResumeId: (id: string) => void;
+  subjectUserId?: string;
 };
 
 function CreateResume({
@@ -39,6 +40,7 @@ function CreateResume({
   resumeToEdit,
   reloadResumes,
   setNewResumeId,
+  subjectUserId,
 }: CreateResumeProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -76,6 +78,9 @@ function CreateResume({
       if (resumeToEdit.FileId) {
         formData.append("fileId", data.fileId as string);
       }
+    }
+    if (subjectUserId) {
+      formData.append("subjectUserId", subjectUserId);
     }
 
     startTransition(async () => {

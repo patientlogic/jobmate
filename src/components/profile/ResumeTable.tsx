@@ -39,6 +39,7 @@ type DocumentTableProps = {
   editCoverLetter: (doc: ProfileDocument) => void;
   editSiteProfile: (doc: ProfileDocument) => void;
   reloadDocuments: () => void;
+  subjectUserId?: string;
 };
 
 function DocumentTable({
@@ -47,6 +48,7 @@ function DocumentTable({
   editCoverLetter,
   editSiteProfile,
   reloadDocuments,
+  subjectUserId,
 }: DocumentTableProps) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] =
@@ -59,6 +61,11 @@ function DocumentTable({
     },
     []
   );
+
+  const resumeHref = (id: string) => {
+    const base = `/dashboard/profile/resume/${id}`;
+    return subjectUserId ? `${base}?userId=${subjectUserId}` : base;
+  };
 
   const deleteDocument = async (doc: ProfileDocument) => {
     if (!doc.id) return;
@@ -74,10 +81,10 @@ function DocumentTable({
 
     const { success, message } =
       doc.type === "resume"
-        ? await deleteResumeById(doc.id, doc.FileId)
+        ? await deleteResumeById(doc.id, doc.FileId, subjectUserId)
         : doc.type === "cover-letter"
-          ? await deleteCoverLetterById(doc.id)
-          : await deleteSiteProfileById(doc.id);
+          ? await deleteCoverLetterById(doc.id, subjectUserId)
+          : await deleteSiteProfileById(doc.id, subjectUserId);
 
     if (success) {
       const label =
@@ -126,7 +133,7 @@ function DocumentTable({
                 <TableCell className="font-medium">
                   {isResume ? (
                     <Link
-                      href={`/dashboard/profile/resume/${doc.id}`}
+                      href={resumeHref(doc.id)}
                       className="flex items-center"
                     >
                       {doc.title}
@@ -198,9 +205,7 @@ function DocumentTable({
                             <Pencil className="mr-2 h-4 w-4" />
                             Edit Resume Title
                           </DropdownMenuItem>
-                          <Link
-                            href={`/dashboard/profile/resume/${doc.id}`}
-                          >
+                          <Link href={resumeHref(doc.id)}>
                             <DropdownMenuItem className="cursor-pointer">
                               <FilePenLine className="mr-2 h-4 w-4" />
                               View/Edit Resume

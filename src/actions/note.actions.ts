@@ -3,28 +3,18 @@ import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
 import { NoteFormSchema } from "@/models/note.schema";
 import { NoteResponse } from "@/models/note.model";
-import { getCurrentUser } from "@/utils/user.utils";
+import { resolveJobOwnerId } from "@/actions/job.actions";
 import { z } from "zod";
 
 export const getNotesByJobId = async (
-  jobId: string
+  jobId: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
-    const job = await prisma.job.findFirst({
-      where: { id: jobId, userId: user.id },
-      select: { id: true },
-    });
-    if (!job) {
-      throw new Error("Job not found");
-    }
+    const ownerId = await resolveJobOwnerId(jobId, subjectUserId);
 
     const notes = await prisma.note.findMany({
-      where: { jobId, userId: user.id },
+      where: { jobId, userId: ownerId },
       orderBy: { createdAt: "desc" },
     });
 
@@ -41,28 +31,17 @@ export const getNotesByJobId = async (
 };
 
 export const addNote = async (
-  data: z.infer<typeof NoteFormSchema>
+  data: z.infer<typeof NoteFormSchema>,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
     const validated = NoteFormSchema.parse(data);
-
-    const job = await prisma.job.findFirst({
-      where: { id: validated.jobId, userId: user.id },
-      select: { id: true },
-    });
-    if (!job) {
-      throw new Error("Job not found");
-    }
+    const ownerId = await resolveJobOwnerId(validated.jobId, subjectUserId);
 
     const note = await prisma.note.create({
       data: {
         jobId: validated.jobId,
-        userId: user.id,
+        userId: ownerId,
         content: validated.content,
       },
     });
@@ -75,21 +54,19 @@ export const addNote = async (
 };
 
 export const updateNote = async (
-  data: z.infer<typeof NoteFormSchema>
+  data: z.infer<typeof NoteFormSchema>,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
     const validated = NoteFormSchema.parse(data);
     if (!validated.id) {
       throw new Error("Note ID is required for update");
     }
 
+    const ownerId = await resolveJobOwnerId(validated.jobId, subjectUserId);
+
     const note = await prisma.note.update({
-      where: { id: validated.id, userId: user.id },
+      where: { id: validated.id, userId: ownerId },
       data: { content: validated.content },
     });
 
@@ -101,16 +78,15 @@ export const updateNote = async (
 };
 
 export const deleteNote = async (
-  noteId: string
+  noteId: string,
+  jobId: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await resolveJobOwnerId(jobId, subjectUserId);
 
     await prisma.note.delete({
-      where: { id: noteId, userId: user.id },
+      where: { id: noteId, userId: ownerId },
     });
 
     return { success: true };

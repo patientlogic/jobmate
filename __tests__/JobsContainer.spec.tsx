@@ -46,6 +46,10 @@ vi.mock("@/actions/job.actions", () => ({
   updateJobStatus: vi.fn(),
 }));
 
+vi.mock("@/actions/site-admin.actions", () => ({
+  listJobBidders: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock("next/navigation", () => ({
   useRouter: vi.fn(),
   usePathname: vi.fn(),

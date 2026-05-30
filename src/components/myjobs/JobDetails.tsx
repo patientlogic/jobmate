@@ -20,8 +20,10 @@ import { useState, useMemo, useCallback } from "react";
 import { DownloadFileButton } from "../profile/DownloadFileButton";
 import { MatchDetails } from "../automations/MatchDetails";
 import type { JobMatchResponse } from "@/models/ai.schemas";
+import { useJobsSubjectUserId } from "./JobsSubjectContext";
 
 function JobDetails({ job }: { job: JobResponse }) {
+  const subjectUserId = useJobsSubjectUserId();
   const [aiSectionOpen, setAiSectionOpen] = useState(false);
   const [currentMatchScore, setCurrentMatchScore] = useState(job.matchScore);
   const [currentMatchData, setCurrentMatchData] = useState(job.matchData);
@@ -162,6 +164,7 @@ function JobDetails({ job }: { job: JobResponse }) {
           aISectionOpen={aiSectionOpen}
           triggerChange={setAiSectionOpen}
           onMatchSaved={handleMatchSaved}
+          subjectUserId={subjectUserId}
         />
       }
     </>

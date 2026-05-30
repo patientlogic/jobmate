@@ -35,6 +35,7 @@ type CreateCoverLetterProps = {
   setDialogOpen: (open: boolean) => void;
   coverLetterToEdit?: CoverLetter | null;
   reloadDocuments: () => void;
+  subjectUserId?: string;
 };
 
 function CreateCoverLetter({
@@ -42,6 +43,7 @@ function CreateCoverLetter({
   setDialogOpen,
   coverLetterToEdit,
   reloadDocuments,
+  subjectUserId,
 }: CreateCoverLetterProps) {
   const [isPending, startTransition] = useTransition();
 
@@ -76,8 +78,13 @@ function CreateCoverLetter({
   const onSubmit = (data: z.infer<typeof CoverLetterFormSchema>) => {
     startTransition(async () => {
       const { success, message } = coverLetterToEdit?.id
-        ? await updateCoverLetter(data.id!, data.title, data.content)
-        : await createCoverLetter(data.title, data.content);
+        ? await updateCoverLetter(
+            data.id!,
+            data.title,
+            data.content,
+            subjectUserId,
+          )
+        : await createCoverLetter(data.title, data.content, subjectUserId);
 
       if (!success) {
         toast({

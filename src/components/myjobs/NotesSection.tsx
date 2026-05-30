@@ -14,12 +14,14 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { toast } from "../ui/use-toast";
+import { useJobsSubjectUserId } from "./JobsSubjectContext";
 
 type NotesSectionProps = {
   jobId: string;
 };
 
 export function NotesSection({ jobId }: NotesSectionProps) {
+  const subjectUserId = useJobsSubjectUserId();
   const [notes, setNotes] = useState<NoteResponse[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -28,12 +30,12 @@ export function NotesSection({ jobId }: NotesSectionProps) {
   const [noteIdToDelete, setNoteIdToDelete] = useState("");
 
   const loadNotes = useCallback(async () => {
-    const result = await getNotesByJobId(jobId);
+    const result = await getNotesByJobId(jobId, subjectUserId);
     if (result.success) {
       setNotes(result.data);
       if (result.data.length > 0) setIsOpen(true);
     }
-  }, [jobId]);
+  }, [jobId, subjectUserId]);
 
   useEffect(() => {
     loadNotes();
@@ -50,7 +52,7 @@ export function NotesSection({ jobId }: NotesSectionProps) {
   };
 
   const handleDelete = async () => {
-    const result = await deleteNote(noteIdToDelete);
+    const result = await deleteNote(noteIdToDelete, jobId, subjectUserId);
     if (result.success) {
       toast({
         variant: "success",
@@ -124,6 +126,7 @@ export function NotesSection({ jobId }: NotesSectionProps) {
         jobId={jobId}
         editNote={editNote}
         onSaved={handleSaved}
+        subjectUserId={subjectUserId}
       />
       <DeleteAlertDialog
         pageTitle="note"

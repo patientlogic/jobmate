@@ -1,25 +1,23 @@
 "use server";
 import prisma from "@/lib/db";
 import { handleError } from "@/lib/utils";
-import { getCurrentUser } from "@/utils/user.utils";
+import { requireSubjectUserId } from "@/lib/admin-scope";
 import { APP_CONSTANTS } from "@/lib/constants";
 
 export const getCoverLetterList = async (
   page: number = 1,
-  limit: number = APP_CONSTANTS.RECORDS_PER_PAGE
+  limit: number = APP_CONSTANTS.RECORDS_PER_PAGE,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       prisma.coverLetter.findMany({
         where: {
           profile: {
-            userId: user.id,
+            userId: ownerId,
           },
         },
         skip,
@@ -44,7 +42,7 @@ export const getCoverLetterList = async (
       prisma.coverLetter.count({
         where: {
           profile: {
-            userId: user.id,
+            userId: ownerId,
           },
         },
       }),
@@ -58,20 +56,18 @@ export const getCoverLetterList = async (
 
 export const createCoverLetter = async (
   title: string,
-  content: string
+  content: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     const value = title.trim().toLowerCase();
     const titleExists = await prisma.coverLetter.findFirst({
       where: {
         title: value,
         profile: {
-          userId: user.id,
+          userId: ownerId,
         },
       },
     });
@@ -82,7 +78,7 @@ export const createCoverLetter = async (
 
     const profile = await prisma.profile.findFirst({
       where: {
-        userId: user.id,
+        userId: ownerId,
       },
     });
 
@@ -96,7 +92,7 @@ export const createCoverLetter = async (
         })
       : await prisma.profile.create({
           data: {
-            userId: user.id,
+            userId: ownerId,
             coverLetters: {
               create: [{ title, content }],
             },
@@ -113,16 +109,14 @@ export const createCoverLetter = async (
 export const updateCoverLetter = async (
   id: string,
   title: string,
-  content: string
+  content: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     const res = await prisma.coverLetter.update({
-      where: { id, profile: { userId: user.id } },
+      where: { id, profile: { userId: ownerId } },
       data: { title, content },
     });
 
@@ -134,16 +128,14 @@ export const updateCoverLetter = async (
 };
 
 export const deleteCoverLetterById = async (
-  coverLetterId: string
+  coverLetterId: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     await prisma.coverLetter.delete({
-      where: { id: coverLetterId, profile: { userId: user.id } },
+      where: { id: coverLetterId, profile: { userId: ownerId } },
     });
 
     return { success: true };

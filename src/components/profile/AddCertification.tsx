@@ -30,6 +30,7 @@ import {
   addCertification,
   updateCertification,
 } from "@/actions/profile.actions";
+import { useProfileSubjectUserId } from "./ProfileSubjectContext";
 
 type AddCertificationProps = {
   resumeId: string | undefined;
@@ -50,6 +51,7 @@ function AddCertification({
     ? "Edit Certification / License"
     : "Add Certification / License";
   const [isPending, startTransition] = useTransition();
+  const subjectUserId = useProfileSubjectUserId();
 
   const form = useForm<z.infer<typeof AddCertificationFormSchema>>({
     resolver: zodResolver(AddCertificationFormSchema),
@@ -101,8 +103,8 @@ function AddCertification({
   const onSubmit = (data: z.infer<typeof AddCertificationFormSchema>) => {
     startTransition(async () => {
       const res = certificationToEdit?.licenseOrCertifications?.length
-        ? await updateCertification(data)
-        : await addCertification(data);
+        ? await updateCertification(data, subjectUserId)
+        : await addCertification(data, subjectUserId);
       if (!res.success) {
         toast({
           variant: "destructive",

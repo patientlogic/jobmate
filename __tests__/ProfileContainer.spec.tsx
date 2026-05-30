@@ -25,6 +25,27 @@ vi.mock("@/actions/coverLetter.actions", () => ({
   ),
 }));
 
+vi.mock("@/actions/siteProfile.actions", () => ({
+  getSiteProfileList: vi.fn(() =>
+    Promise.resolve({
+      data: [],
+      total: 0,
+      success: true,
+      message: "",
+    }),
+  ),
+}));
+
+vi.mock("@/actions/site-admin.actions", () => ({
+  listJobBidders: vi.fn(() => Promise.resolve([])),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn() }),
+  usePathname: () => "/dashboard/profile",
+  useSearchParams: () => new URLSearchParams(""),
+}));
+
 describe("ProfileContainer Component", () => {
   beforeEach(async () => {
     vi.clearAllMocks();

@@ -3,25 +3,23 @@
 import prisma from "@/lib/db";
 import { decrypt, encrypt } from "@/lib/encryption";
 import { handleError } from "@/lib/utils";
-import { getCurrentUser } from "@/utils/user.utils";
+import { requireSubjectUserId } from "@/lib/admin-scope";
 import { APP_CONSTANTS } from "@/lib/constants";
 
 export const getSiteProfileList = async (
   page: number = 1,
   limit: number = APP_CONSTANTS.RECORDS_PER_PAGE,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
       prisma.siteProfile.findMany({
         where: {
           profile: {
-            userId: user.id,
+            userId: ownerId,
           },
         },
         skip,
@@ -42,7 +40,7 @@ export const getSiteProfileList = async (
       prisma.siteProfile.count({
         where: {
           profile: {
-            userId: user.id,
+            userId: ownerId,
           },
         },
       }),
@@ -59,19 +57,17 @@ export const createSiteProfile = async (
   accountName: string,
   email: string,
   password: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     const normalizedUrl = siteUrl.trim().toLowerCase();
     const existing = await prisma.siteProfile.findFirst({
       where: {
         siteUrl: normalizedUrl,
         profile: {
-          userId: user.id,
+          userId: ownerId,
         },
       },
     });
@@ -84,7 +80,7 @@ export const createSiteProfile = async (
 
     const profile = await prisma.profile.findFirst({
       where: {
-        userId: user.id,
+        userId: ownerId,
       },
     });
 
@@ -101,7 +97,7 @@ export const createSiteProfile = async (
         })
       : await prisma.profile.create({
           data: {
-            userId: user.id,
+            userId: ownerId,
             siteProfiles: {
               create: [
                 {
@@ -132,19 +128,17 @@ export const updateSiteProfile = async (
   accountName: string,
   email: string,
   password?: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     const normalizedUrl = siteUrl.trim().toLowerCase();
     const duplicate = await prisma.siteProfile.findFirst({
       where: {
         siteUrl: normalizedUrl,
         profile: {
-          userId: user.id,
+          userId: ownerId,
         },
         NOT: { id },
       },
@@ -173,7 +167,7 @@ export const updateSiteProfile = async (
     }
 
     const res = await prisma.siteProfile.update({
-      where: { id, profile: { userId: user.id } },
+      where: { id, profile: { userId: ownerId } },
       data,
     });
 
@@ -186,15 +180,13 @@ export const updateSiteProfile = async (
 
 export const deleteSiteProfileById = async (
   siteProfileId: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     await prisma.siteProfile.delete({
-      where: { id: siteProfileId, profile: { userId: user.id } },
+      where: { id: siteProfileId, profile: { userId: ownerId } },
     });
 
     return { success: true };
@@ -206,18 +198,16 @@ export const deleteSiteProfileById = async (
 
 export const getSiteProfilePassword = async (
   siteProfileId: string,
+  subjectUserId?: string,
 ): Promise<{ success: boolean; password?: string; message?: string }> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     const siteProfile = await prisma.siteProfile.findFirst({
       where: {
         id: siteProfileId,
         profile: {
-          userId: user.id,
+          userId: ownerId,
         },
       },
       select: {

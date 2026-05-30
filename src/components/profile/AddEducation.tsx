@@ -30,6 +30,7 @@ import { Loader } from "lucide-react";
 import { Combobox } from "../ComboBox";
 import { JobLocation } from "@/models/job.model";
 import { addEducation, updateEducation } from "@/actions/profile.actions";
+import { useProfileSubjectUserId } from "./ProfileSubjectContext";
 import { getAllJobLocations } from "@/actions/jobLocation.actions";
 
 type AddEducationProps = {
@@ -49,6 +50,7 @@ function AddEducation({
 }: AddEducationProps) {
   const pageTitle = educationToEdit ? "Edit Education" : "Add Education";
   const [isPending, startTransition] = useTransition();
+  const subjectUserId = useProfileSubjectUserId();
   const [locations, setLocations] = useState<JobLocation[]>([]);
 
   const getLocationData = useCallback(async () => {
@@ -107,8 +109,8 @@ function AddEducation({
   const onSubmit = (data: z.infer<typeof AddEducationFormSchema>) => {
     startTransition(async () => {
       const res = educationToEdit?.educations?.length
-        ? await updateEducation(data)
-        : await addEducation(data);
+        ? await updateEducation(data, subjectUserId)
+        : await addEducation(data, subjectUserId);
       if (!res.success) {
         toast({
           variant: "destructive",

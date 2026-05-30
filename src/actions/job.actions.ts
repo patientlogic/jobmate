@@ -4,7 +4,7 @@ import { handleError } from "@/lib/utils";
 import { AddJobFormSchema } from "@/models/addJobForm.schema";
 import { JOB_TYPES, JobStatus } from "@/models/job.model";
 import { getCurrentUser, getViewerContext } from "@/utils/user.utils";
-import { resolveScopedUserId } from "@/lib/admin-scope";
+import { requireSubjectUserId, resolveScopedUserId } from "@/lib/admin-scope";
 import { APP_CONSTANTS } from "@/lib/constants";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -36,6 +36,42 @@ export const getJobSourceList = async (): Promise<any | undefined> => {
     return handleError(error, msg);
   }
 };
+
+export async function resolveJobOwnerId(
+  jobId: string,
+  subjectUserId?: string,
+): Promise<string> {
+  const viewer = await getViewerContext();
+  if (!viewer) {
+    throw new Error("Not authenticated");
+  }
+
+  if (subjectUserId?.trim()) {
+    const ownerId = await requireSubjectUserId(subjectUserId);
+    const job = await prisma.job.findFirst({
+      where: { id: jobId, userId: ownerId },
+      select: { userId: true },
+    });
+    if (!job) {
+      throw new Error("Job not found");
+    }
+    return ownerId;
+  }
+
+  const job = await prisma.job.findFirst({
+    where: { id: jobId },
+    select: { userId: true },
+  });
+  if (!job) {
+    throw new Error("Job not found");
+  }
+
+  if (viewer.role === "ADMIN" || job.userId === viewer.id) {
+    return job.userId;
+  }
+
+  throw new Error("Forbidden");
+}
 
 export const getJobsList = async (
   page: number = 1,
@@ -154,13 +190,13 @@ export const getJobsList = async (
   }
 };
 
-export async function* getJobsIterator(filter?: string, pageSize = 200) {
-  const user = await getCurrentUser();
-  if (!user) {
-    throw new Error("Not authenticated");
-  }
+export async function* getJobsIterator(
+  filter?: string,
+  pageSize = 200,
+  subjectUserId?: string,
+) {
+  const ownerId = await requireSubjectUserId(subjectUserId);
   let page = 1;
-  let fetchedCount = 0;
 
   while (true) {
     const skip = (page - 1) * pageSize;
@@ -172,7 +208,7 @@ export async function* getJobsIterator(filter?: string, pageSize = 200) {
 
     const chunk = await prisma.job.findMany({
       where: {
-        userId: user.id,
+        userId: ownerId,
         ...filterBy,
       },
       select: {
@@ -197,30 +233,44 @@ export async function* getJobsIterator(filter?: string, pageSize = 200) {
       break;
     }
 
+    if (!chunk.length) {
+      break;
+    }
+
     yield chunk;
-    fetchedCount += chunk.length;
     page++;
   }
 }
 
 export const getJobDetails = async (
   jobId: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
     if (!jobId) {
       throw new Error("Please provide job id");
     }
-    const user = await getCurrentUser();
+    const viewer = await getViewerContext();
 
-    if (!user) {
+    if (!viewer) {
       throw new Error("Not authenticated");
     }
 
-    const job = await prisma.job.findUnique({
-      where: {
-        id: jobId,
-        userId: user.id,
-      },
+    const whereClause = subjectUserId?.trim()
+      ? {
+          id: jobId,
+          userId: await resolveScopedUserId({
+            viewerId: viewer.id,
+            viewerRole: viewer.role,
+            subjectUserId,
+          }),
+        }
+      : viewer.role === "ADMIN"
+        ? { id: jobId }
+        : { id: jobId, userId: viewer.id };
+
+    const job = await prisma.job.findFirst({
+      where: whereClause,
       include: {
         JobSource: true,
         JobTitle: true,
@@ -236,6 +286,11 @@ export const getJobDetails = async (
         tags: true,
       },
     });
+
+    if (!job) {
+      throw new Error("Job not found");
+    }
+
     return { job, success: true };
   } catch (error) {
     const msg = "Failed to fetch job details. ";
@@ -313,13 +368,10 @@ export const createJobSource = async (
 
 export const addJob = async (
   data: z.infer<typeof AddJobFormSchema>,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     const {
       title,
@@ -354,7 +406,7 @@ export const addJob = async (
         appliedDate: dateApplied,
         description: jobDescription,
         jobType: type,
-        userId: user.id,
+        userId: ownerId,
         jobUrl,
         applied,
         resumeId: resume,
@@ -373,16 +425,13 @@ export const addJob = async (
 
 export const updateJob = async (
   data: z.infer<typeof AddJobFormSchema>,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
     if (!data.id) {
       throw new Error("Job id is required");
     }
+    const ownerId = await requireSubjectUserId(subjectUserId);
 
     const {
       id,
@@ -408,7 +457,7 @@ export const updateJob = async (
     const job = await prisma.job.update({
       where: {
         id,
-        userId: user.id,
+        userId: ownerId,
       },
       data: {
         jobTitleId: title,
@@ -440,13 +489,10 @@ export const updateJob = async (
 export const updateJobStatus = async (
   jobId: string,
   status: JobStatus,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await resolveJobOwnerId(jobId, subjectUserId);
     const dataToUpdate = () => {
       switch (status.value) {
         case "applied":
@@ -470,7 +516,7 @@ export const updateJobStatus = async (
     const job = await prisma.job.update({
       where: {
         id: jobId,
-        userId: user.id,
+        userId: ownerId,
       },
       data: dataToUpdate(),
     });
@@ -485,15 +531,13 @@ export const saveJobMatchResult = async (
   jobId: string,
   matchScore: number,
   matchData: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await resolveJobOwnerId(jobId, subjectUserId);
 
     await prisma.job.update({
-      where: { id: jobId, userId: user.id },
+      where: { id: jobId, userId: ownerId },
       data: { matchScore, matchData },
     });
 
@@ -506,18 +550,15 @@ export const saveJobMatchResult = async (
 
 export const deleteJobById = async (
   jobId: string,
+  subjectUserId?: string,
 ): Promise<any | undefined> => {
   try {
-    const user = await getCurrentUser();
-
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
+    const ownerId = await resolveJobOwnerId(jobId, subjectUserId);
 
     const res = await prisma.job.delete({
       where: {
         id: jobId,
-        userId: user.id,
+        userId: ownerId,
       },
     });
     return { res, success: true };

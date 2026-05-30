@@ -6,6 +6,7 @@ import JobSourcesContainer from "@/components/admin/JobSourcesContainer";
 import JobTitlesContainer from "@/components/admin/JobTitlesContainer";
 import TagsContainer from "@/components/admin/TagsContainer";
 import UsersContainer from "@/components/admin/UsersContainer";
+import AppliedJobsContainer from "@/components/admin/AppliedJobsContainer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
@@ -29,26 +30,34 @@ function AdminTabsContainer({ isAdmin = false }: AdminTabsContainerProps) {
     [queryParams],
   );
 
+  const defaultTab =
+    queryParams.get("tab") || (isAdmin ? "companies" : "job-titles");
+
   const onTabChange = (tab: string) => {
     router.push(pathname + "?" + createQueryString("tab", tab));
   };
   return (
     <Tabs
-      defaultValue={queryParams.get("tab") || "companies"}
+      defaultValue={defaultTab}
       onValueChange={(e) => onTabChange(e)}
     >
       <TabsList>
-        <TabsTrigger value="companies">Companies</TabsTrigger>
+        {isAdmin ? <TabsTrigger value="companies">Companies</TabsTrigger> : null}
         <TabsTrigger value="job-titles">Job Titles</TabsTrigger>
         <TabsTrigger value="locations">Locations</TabsTrigger>
         <TabsTrigger value="sources">Sources</TabsTrigger>
         <TabsTrigger value="skills">Skills</TabsTrigger>
         <TabsTrigger value="activity-types">Activity Types</TabsTrigger>
         {isAdmin ? <TabsTrigger value="users">Users</TabsTrigger> : null}
+        {isAdmin ? (
+          <TabsTrigger value="applied-jobs">Applied Jobs</TabsTrigger>
+        ) : null}
       </TabsList>
-      <TabsContent value="companies">
-        <CompaniesContainer />
-      </TabsContent>
+      {isAdmin ? (
+        <TabsContent value="companies">
+          <CompaniesContainer globalCatalog />
+        </TabsContent>
+      ) : null}
       <TabsContent value="job-titles">
         <JobTitlesContainer />
       </TabsContent>
@@ -67,6 +76,11 @@ function AdminTabsContainer({ isAdmin = false }: AdminTabsContainerProps) {
       {isAdmin ? (
         <TabsContent value="users">
           <UsersContainer />
+        </TabsContent>
+      ) : null}
+      {isAdmin ? (
+        <TabsContent value="applied-jobs">
+          <AppliedJobsContainer />
         </TabsContent>
       ) : null}
     </Tabs>

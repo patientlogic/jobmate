@@ -33,6 +33,7 @@ import { getAllJobTitles } from "@/actions/jobtitle.actions";
 import { getAllJobLocations } from "@/actions/jobLocation.actions";
 import { Switch } from "../ui/switch";
 import { addExperience, updateExperience } from "@/actions/profile.actions";
+import { useProfileSubjectUserId } from "./ProfileSubjectContext";
 
 type AddExperienceProps = {
   resumeId: string | undefined;
@@ -54,15 +55,16 @@ function AddExperience({
   const [jobTitles, setJobTitles] = useState<JobTitle[]>([]);
   const pageTitle = experienceToEdit ? "Edit Experience" : "Add Experience";
   const [isPending, startTransition] = useTransition();
+  const subjectUserId = useProfileSubjectUserId();
   const getTitleCompanyAndLocationData = useCallback(async () => {
     const [_companies, _titles, _locations] = await Promise.all([
       getAllCompanies(),
       getAllJobTitles(),
       getAllJobLocations(),
     ]);
-    setCompanies(_companies);
-    setLocations(_locations);
-    setJobTitles(_titles);
+    setCompanies(Array.isArray(_companies) ? _companies : []);
+    setLocations(Array.isArray(_locations) ? _locations : []);
+    setJobTitles(Array.isArray(_titles) ? _titles : []);
   }, []);
 
   const form = useForm<z.infer<typeof AddExperienceFormSchema>>({
@@ -117,8 +119,8 @@ function AddExperience({
   const onSubmit = (data: z.infer<typeof AddExperienceFormSchema>) => {
     startTransition(async () => {
       const res = experienceToEdit?.workExperiences?.length
-        ? await updateExperience(data)
-        : await addExperience(data);
+        ? await updateExperience(data, subjectUserId)
+        : await addExperience(data, subjectUserId);
       if (!res.success) {
         toast({
           variant: "destructive",
@@ -205,7 +207,12 @@ function AddExperience({
                   <FormItem className="flex flex-col">
                     <FormLabel>Company</FormLabel>
                     <FormControl>
-                      <Combobox options={companies} field={field} creatable />
+                      <Combobox
+                        options={companies}
+                        field={field}
+                        creatable
+                        onOptionsChange={setCompanies}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -28,6 +28,7 @@ import {
   updateResumeSummary,
 } from "@/actions/profile.actions";
 import { ResumeSection } from "@/models/profile.model";
+import { useProfileSubjectUserId } from "./ProfileSubjectContext";
 
 interface AddResumeSummaryProps {
   resumeId: string | undefined;
@@ -43,6 +44,7 @@ function AddResumeSummary({
   summaryToEdit,
 }: AddResumeSummaryProps) {
   const [isPending, startTransition] = useTransition();
+  const subjectUserId = useProfileSubjectUserId();
 
   const pageTitle = summaryToEdit ? "Edit Summary" : "Add Summary";
 
@@ -74,8 +76,8 @@ function AddResumeSummary({
   const onSubmit = (data: z.infer<typeof AddSummarySectionFormSchema>) => {
     startTransition(async () => {
       const res = summaryToEdit
-        ? await updateResumeSummary(data)
-        : await addResumeSummary(data);
+        ? await updateResumeSummary(data, subjectUserId)
+        : await addResumeSummary(data, subjectUserId);
       if (!res.success) {
         toast({
           variant: "destructive",

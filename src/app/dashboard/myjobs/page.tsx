@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { Metadata } from "next";
 
 import { getJobSourceList, getStatusList } from "@/actions/job.actions";
@@ -12,7 +13,10 @@ export const metadata: Metadata = {
 };
 
 async function MyJobs() {
-  const [statuses, companies, titles, locations, sources, tags] =
+  const session = await auth();
+  const isAdmin = session?.user?.role === "ADMIN";
+
+  const [statuses, companiesResult, titles, locations, sources, tags] =
     await Promise.all([
       getStatusList(),
       getAllCompanies(),
@@ -21,9 +25,11 @@ async function MyJobs() {
       getJobSourceList(),
       getAllTags(),
     ]);
+  const companies = Array.isArray(companiesResult) ? companiesResult : [];
   return (
     <div className="col-span-3">
       <JobsContainer
+        isAdmin={isAdmin}
         companies={companies}
         titles={titles}
         locations={locations}

@@ -39,17 +39,20 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import SelectFormCtrl from "../Select";
 import { DatePicker } from "../DatePicker";
 import { SALARY_RANGES } from "@/lib/data/salaryRangeData";
+import { APP_CONSTANTS } from "@/lib/constants";
 import TiptapEditor from "../TiptapEditor";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Combobox } from "../ComboBox";
 import { NotesCollapsibleSection } from "./NotesCollapsibleSection";
 import { CoverLetter, Resume } from "@/models/profile.model";
 import CreateResume from "../profile/CreateResume";
 import { getResumeList } from "@/actions/profile.actions";
 import { getCoverLetterList } from "@/actions/coverLetter.actions";
+import { getAllCompanies } from "@/actions/company.actions";
 import { TagInput } from "./TagInput";
+import { buildMyJobsPath } from "./JobsSubjectContext";
 
 type AddJobProps = {
   jobStatuses: JobStatus[];
@@ -60,6 +63,7 @@ type AddJobProps = {
   tags: Tag[];
   editJob?: JobResponse | null;
   resetEditJob: () => void;
+  subjectUserId?: string;
 };
 
 export function AddJob({
@@ -71,9 +75,12 @@ export function AddJob({
   tags,
   editJob,
   resetEditJob,
+  subjectUserId,
 }: AddJobProps) {
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [resumeDialogOpen, setResumeDialogOpen] = useState(false);
+  const [companyOptions, setCompanyOptions] = useState<Company[]>(companies);
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags);
@@ -94,21 +101,44 @@ export function AddJob({
 
   const loadResumes = useCallback(async () => {
     try {
-      const resumes = await getResumeList();
+      const resumes = await getResumeList(1, APP_CONSTANTS.RECORDS_PER_PAGE, subjectUserId);
       setResumes(resumes.data);
     } catch (error) {
       console.error("Failed to load resumes:", error);
     }
-  }, [setResumes]);
+  }, [subjectUserId]);
 
   const loadCoverLetters = useCallback(async () => {
     try {
-      const result = await getCoverLetterList(1, 100);
+      const result = await getCoverLetterList(1, 100, subjectUserId);
       setCoverLetters(result.data);
     } catch (error) {
       console.error("Failed to load cover letters:", error);
     }
-  }, [setCoverLetters]);
+  }, [subjectUserId]);
+
+  const loadCompanies = useCallback(async () => {
+    try {
+      const result = await getAllCompanies();
+      if (Array.isArray(result)) {
+        setCompanyOptions(result);
+      }
+    } catch (error) {
+      console.error("Failed to load companies:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    setCompanyOptions(Array.isArray(companies) ? companies : []);
+  }, [companies]);
+
+  useEffect(() => {
+    if (dialogOpen) {
+      loadCompanies();
+      loadResumes();
+      loadCoverLetters();
+    }
+  }, [dialogOpen, loadCompanies, loadResumes, loadCoverLetters]);
 
   useEffect(() => {
     if (editJob) {
@@ -160,8 +190,8 @@ export function AddJob({
   function onSubmit(data: z.infer<typeof AddJobFormSchema>) {
     startTransition(async () => {
       const { success, message } = editJob
-        ? await updateJob(data)
-        : await addJob(data);
+        ? await updateJob(data, subjectUserId)
+        : await addJob(data, subjectUserId);
       reset();
       setDialogOpen(false);
       if (!success) {
@@ -170,8 +200,10 @@ export function AddJob({
           title: "Error!",
           description: message,
         });
+        return;
       }
-      redirect("/dashboard/myjobs");
+      router.push(buildMyJobsPath(subjectUserId));
+      router.refresh();
     });
     toast({
       variant: "success",
@@ -283,9 +315,10 @@ export function AddJob({
                         <FormLabel>Company</FormLabel>
                         <FormControl>
                           <Combobox
-                            options={companies}
+                            options={companyOptions}
                             field={field}
                             creatable
+                            onOptionsChange={setCompanyOptions}
                           />
                         </FormControl>
                         <FormMessage />
@@ -499,6 +532,7 @@ export function AddJob({
                     setResumeDialogOpen={setResumeDialogOpen}
                     reloadResumes={loadResumes}
                     setNewResumeId={setNewResumeId}
+                    subjectUserId={subjectUserId}
                   />
                 </div>
 
@@ -560,7 +594,12 @@ export function AddJob({
                     )}
                   />
                 </div>
-                {editJob && <NotesCollapsibleSection jobId={editJob.id} />}
+                {editJob && (
+                  <NotesCollapsibleSection
+                    jobId={editJob.id}
+                    subjectUserId={subjectUserId}
+                  />
+                )}
                 <div className="md:col-span-2">
                   <DialogFooter
                   // className="md:col-span
