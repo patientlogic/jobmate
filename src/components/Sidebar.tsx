@@ -72,7 +72,7 @@ function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
           onClick={toggleCollapsed}
           className={cn(
             "text-muted-foreground hover:text-foreground",
-            collapsed ? "mx-auto h-9 w-9" : "w-full justify-start gap-3 px-3",
+            collapsed ? "h-9 w-9 justify-center md:h-8 md:w-8" : "w-full justify-start gap-3 px-3",
           )}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
