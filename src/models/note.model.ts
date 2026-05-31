@@ -10,3 +10,8 @@ export interface Note {
 export interface NoteResponse extends Note {
   isEdited: boolean;
 }
+
+export type NoteDisplay = Pick<
+  NoteResponse,
+  "id" | "content" | "createdAt" | "isEdited"
+>;

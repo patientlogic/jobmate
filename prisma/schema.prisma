@@ -39,8 +39,11 @@ model User {
   Settings     UserSettings?
   ApiKey       ApiKey[]
   Note         Note[]
+  MeetingNote  MeetingNote[]
   Tag          Tag[]
   Question     Question[]
+  Meeting      Meeting[]      @relation("MeetingOwner")
+  assignedMeetings Meeting[]  @relation("MeetingAssignedDeveloper")
 }
 
 model ApiKey {
@@ -298,6 +301,7 @@ model Interview {
 
 model Job {
   id          String      @id @default(uuid())
+  jid         Int         @unique @default(autoincrement())
   userId      String
   User        User        @relation(fields: [userId], references: [id])
   jobUrl      String?
@@ -325,6 +329,7 @@ model Job {
   coverLetterId String?
   Notes         Note[]
   tags        Tag[]
+  Meeting       Meeting[]
 
   // Automation discovery fields
   automationId    String?
@@ -487,4 +492,52 @@ model Question {
   updatedAt DateTime @updatedAt
 
   @@index([createdBy])
+}
+
+model Meeting {
+  id                String   @id @default(uuid())
+  mid               Int      @unique @default(autoincrement())
+  userId              String
+  user                User     @relation("MeetingOwner", fields: [userId], references: [id])
+  assignedDeveloperId String?
+  assignedDeveloper   User?    @relation("MeetingAssignedDeveloper", fields: [assignedDeveloperId], references: [id], onDelete: SetNull)
+  jobId               String
+  job               Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  positionRole      String
+  accountName       String   @default("")
+  startTime         DateTime
+  endTime           DateTime
+  timeZone          String   @default("UTC")
+  companyName       String
+  meetingLink       String?
+  interviewStep     String
+  meetingType       String
+  status            String   @default("Waiting")
+  area              String?
+  address           String?
+  dob               DateTime?
+  resumeUrl         String?  @db.VarChar(2048)
+  salaryExpectation String?
+  jobDescription    String?  @db.Text
+  Notes             MeetingNote[]
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([jobId])
+  @@index([assignedDeveloperId])
+}
+
+model MeetingNote {
+  id        String   @id @default(uuid())
+  meetingId String
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([meetingId])
+  @@index([userId])
 }

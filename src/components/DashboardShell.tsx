@@ -8,17 +8,26 @@ type DashboardShellProps = {
   children: React.ReactNode;
   isAdmin: boolean;
   canAccessDeveloper: boolean;
+  canAccessAssignedMeetings: boolean;
+  canAccessMyMeetings: boolean;
 };
 
 export default function DashboardShell({
   children,
   isAdmin,
   canAccessDeveloper,
+  canAccessAssignedMeetings,
+  canAccessMyMeetings,
 }: DashboardShellProps) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <Sidebar isAdmin={isAdmin} canAccessDeveloper={canAccessDeveloper} />
+        <Sidebar
+          isAdmin={isAdmin}
+          canAccessDeveloper={canAccessDeveloper}
+          canAccessAssignedMeetings={canAccessAssignedMeetings}
+          canAccessMyMeetings={canAccessMyMeetings}
+        />
         <DashboardMain>{children}</DashboardMain>
       </div>
     </SidebarProvider>

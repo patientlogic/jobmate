@@ -9,6 +9,10 @@ import {
   getRecentJobs,
   getTopActivityTypesByDuration,
 } from "@/actions/dashboard.actions";
+import {
+  getAssignedMeetingsForPeriod,
+  getTotalAssignedMeetingsForDeveloper,
+} from "@/actions/meeting.actions";
 import ActivityCalendar from "@/components/dashboard/ActivityCalendar";
 import JobsApplied from "@/components/dashboard/JobsAppliedCard";
 import NumberCardToggle from "@/components/dashboard/NumberCardToggle";
@@ -74,6 +78,8 @@ export default async function DashboardOverview({
     { count: jobsAppliedLast30Days, trend: trendFor30Days },
     { count: interviewsLast7Days, trend: interviewsTrendFor7Days },
     { count: interviewsLast30Days, trend: interviewsTrendFor30Days },
+    assignedMeetingsLast7Days,
+    totalAssignedMeetings,
     recentJobs,
     recentActivities,
     weeklyData,
@@ -87,6 +93,8 @@ export default async function DashboardOverview({
     getJobsAppliedForPeriod(30, subjectUserId),
     getInterviewsForPeriod(7, subjectUserId),
     getInterviewsForPeriod(30, subjectUserId),
+    isDeveloper ? getAssignedMeetingsForPeriod(7) : Promise.resolve({ count: 0, trend: 0 }),
+    isDeveloper ? getTotalAssignedMeetingsForDeveloper() : Promise.resolve(0),
     getRecentJobs(subjectUserId),
     getRecentActivities(subjectUserId),
     getJobsActivityForPeriod(subjectUserId),
@@ -148,7 +156,25 @@ export default async function DashboardOverview({
                 },
               ]}
             />
-          ) : null}
+          ) : (
+            <NumberCardToggle
+              title="Assigned Meetings"
+              metricLabel="Assigned"
+              href="/dashboard/assigned-meetings"
+              data={[
+                {
+                  label: "All",
+                  num: totalAssignedMeetings,
+                  trend: 0,
+                },
+                {
+                  label: "7d",
+                  num: assignedMeetingsLast7Days.count,
+                  trend: assignedMeetingsLast7Days.trend,
+                },
+              ]}
+            />
+          )}
           <NumberCardToggle
             title="Interviews"
             metricLabel="Interviews"

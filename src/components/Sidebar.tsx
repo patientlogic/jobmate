@@ -14,9 +14,13 @@ import { Button } from "./ui/button";
 function Sidebar({
   isAdmin = false,
   canAccessDeveloper = false,
+  canAccessAssignedMeetings = false,
+  canAccessMyMeetings = true,
 }: {
   isAdmin?: boolean;
   canAccessDeveloper?: boolean;
+  canAccessAssignedMeetings?: boolean;
+  canAccessMyMeetings?: boolean;
 }) {
   const path = usePathname();
   const { collapsed, toggleCollapsed } = useSidebar();
@@ -26,8 +30,26 @@ function Sidebar({
       return false;
     }
     if ("adminOnly" in item && item.adminOnly && !isAdmin) return false;
+    if (
+      "assignedMeetingsAccess" in item &&
+      item.assignedMeetingsAccess &&
+      !canAccessAssignedMeetings
+    ) {
+      return false;
+    }
+    if (
+      "myMeetingsAccess" in item &&
+      item.myMeetingsAccess &&
+      !canAccessMyMeetings
+    ) {
+      return false;
+    }
     return true;
-  });
+  }).map((item) =>
+    isAdmin && item.route === "/dashboard/meetings"
+      ? { ...item, label: "Meetings" }
+      : item,
+  );
 
   return (
     <aside

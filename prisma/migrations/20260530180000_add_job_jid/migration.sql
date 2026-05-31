@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE `Job` ADD COLUMN `jid` INTEGER NOT NULL AUTO_INCREMENT,
+    ADD UNIQUE INDEX `Job_jid_key`(`jid`);

@@ -1,8 +1,8 @@
 "use client";
 
-import { JobForm } from "@/models/job.model";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { useEffect } from "react";
 
 import { ControllerRenderProps } from "react-hook-form";
 import { Toggle } from "./ui/toggle";
@@ -41,6 +41,17 @@ const Tiptap = ({ field }: { field: ControllerRenderProps<any, any> }) => {
       field.onChange(editor.getHTML());
     },
   });
+
+  useEffect(() => {
+    if (!editor) return;
+
+    const currentContent = editor.getHTML();
+    const nextContent = field.value ?? "";
+
+    if (nextContent !== currentContent) {
+      editor.commands.setContent(nextContent, false);
+    }
+  }, [editor, field.value]);
 
   return (
     <div className="flex flex-col gap-2">

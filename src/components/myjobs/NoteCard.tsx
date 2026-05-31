@@ -1,13 +1,19 @@
 "use client";
-import { NoteResponse } from "@/models/note.model";
 import { TipTapContentViewer } from "../TipTapContentViewer";
 import { format } from "date-fns";
 import { Button } from "../ui/button";
 import { Pencil, Trash } from "lucide-react";
 
+export type NoteCardNote = {
+  id: string;
+  content: string;
+  createdAt: Date;
+  isEdited: boolean;
+};
+
 type NoteCardProps = {
-  note: NoteResponse;
-  onEdit: (note: NoteResponse) => void;
+  note: NoteCardNote;
+  onEdit: (note: NoteCardNote) => void;
   onDelete: (noteId: string) => void;
 };
 

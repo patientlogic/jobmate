@@ -5,7 +5,6 @@ import { getMockJobDetails, getMockList } from "@/lib/mock.utils";
 import { screen, render, waitFor } from "@testing-library/react";
 import { getCurrentUser } from "@/utils/user.utils";
 import userEvent from "@testing-library/user-event";
-import { format } from "date-fns";
 import { addJob } from "@/actions/job.actions";
 vi.mock("@/utils/user.utils", () => ({
   getCurrentUser: vi.fn(),
@@ -85,21 +84,11 @@ describe("AddJob Component", () => {
     expect(dialogTitle).toBeInTheDocument();
     expect(dialogTitle).toHaveTextContent("Add Job");
   });
-  it("should reflect on status and date applied when applied switch toggles", async () => {
-    const appliedSwitch = screen.getByRole("switch");
-    expect(appliedSwitch).not.toBeChecked();
-    const dateApplied = screen.getByLabelText("Date Applied");
-    expect(dateApplied).toBeDisabled();
-    await user.click(appliedSwitch); // toggle applied switch
-    expect(appliedSwitch).toBeChecked();
-    expect(dateApplied).toBeEnabled(); // date applied is enabled
-    expect(dateApplied).toHaveTextContent(format(new Date(), "PP")); // to have today's date
+  it("should not show applied switch or date applied when adding a job", async () => {
+    expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Date Applied")).not.toBeInTheDocument();
     const status = screen.getByLabelText("Status");
     expect(status).toHaveTextContent("Applied");
-    await user.click(appliedSwitch);
-    expect(status).toHaveTextContent("Draft");
-    expect(dateApplied).toBeDisabled();
-    expect(dateApplied).toHaveTextContent("Pick a date");
   });
   it("should open the dialog when clicked on add job button with title 'Edit Job'", async () => {
     // TODO: To be tested with job container and jobs table component
@@ -217,13 +206,12 @@ describe("AddJob Component", () => {
         location: "1yy",
         type: "FT",
         source: "1359dac4-a397-4461-b747-382706dcbe79",
-        status: "d7ba200a-6dc1-4ea8-acff-29ebb0d4676a",
+        status: "5e7c6e8c-83e6-46e3-bf01-db8f0b503399",
         dueDate: expect.any(Date),
-        dateApplied: undefined,
         salaryRange: "1",
         jobDescription: "<p>New Job Description</p>",
         jobUrl: undefined,
-        applied: false,
+        applied: true,
         tags: [],
       });
     });

@@ -14,3 +14,10 @@ export const SALARY_RANGES = [
   { id: "13", value: "130,000 - 140,000" },
   { id: "14", value: "> 150,000" },
 ];
+
+export function getSalaryRangeLabel(idOrValue: string | null | undefined): string {
+  if (!idOrValue) return "";
+
+  const match = SALARY_RANGES.find((range) => range.id === idOrValue);
+  return match?.value ?? idOrValue;
+}

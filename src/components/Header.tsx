@@ -13,7 +13,9 @@ import { SIDEBAR_LINKS } from "@/lib/constants";
 import { auth, signOut } from "@/auth";
 import { getCurrentUser } from "@/utils/user.utils";
 import {
+  canAccessAssignedMeetings,
   canAccessDeveloperOptions,
+  canAccessMyMeetings,
   isAdminRole,
   parseUserRole,
 } from "@/lib/user-roles";
@@ -26,6 +28,8 @@ async function Header() {
   const role = parseUserRole(session?.user?.role);
   const isAdmin = isAdminRole(role);
   const canAccessDeveloper = canAccessDeveloperOptions(role);
+  const showAssignedMeetings = canAccessAssignedMeetings(role);
+  const showMyMeetings = canAccessMyMeetings(role);
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
@@ -52,6 +56,24 @@ async function Header() {
               if ("adminOnly" in item && item.adminOnly && !isAdmin) {
                 return null;
               }
+              if (
+                "assignedMeetingsAccess" in item &&
+                item.assignedMeetingsAccess &&
+                !showAssignedMeetings
+              ) {
+                return null;
+              }
+              if (
+                "myMeetingsAccess" in item &&
+                item.myMeetingsAccess &&
+                !showMyMeetings
+              ) {
+                return null;
+              }
+              const label =
+                isAdmin && item.route === "/dashboard/meetings"
+                  ? "Meetings"
+                  : item.label;
               return (
                 <SheetClose asChild key={item.label}>
                   <Link
@@ -59,7 +81,7 @@ async function Header() {
                     className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                   >
                     <item.icon className="h-5 w-5" />
-                    {item.label}
+                    {label}
                   </Link>
                 </SheetClose>
               );

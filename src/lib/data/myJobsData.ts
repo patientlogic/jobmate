@@ -5,6 +5,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
   data: [
     {
       id: "2",
+      jid: 1,
       userId: "xyz",
       Company: {
         id: "2zz",
@@ -39,6 +40,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "3",
+      jid: 2,
       userId: "xyz",
       Company: {
         id: "3",
@@ -73,6 +75,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "4",
+      jid: 3,
       userId: "xyz",
       Company: {
         id: "4",
@@ -107,6 +110,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "5",
+      jid: 4,
       userId: "xyz",
       Company: {
         id: "5",
@@ -141,6 +145,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "6",
+      jid: 5,
       userId: "xyz",
       Company: {
         id: "6",
@@ -175,6 +180,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "7",
+      jid: 6,
       userId: "xyz",
       Company: {
         id: "2zz",
@@ -209,6 +215,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "8",
+      jid: 7,
       userId: "xyz",
       Company: {
         id: "7",
@@ -243,6 +250,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "9",
+      jid: 8,
       userId: "xyz",
       Company: {
         id: "5",
@@ -277,6 +285,7 @@ export const MY_JOBS_DATA: { data: JobResponse[]; total: number } = {
     },
     {
       id: "10",
+      jid: 9,
       userId: "xyz",
       Company: {
         id: "6",

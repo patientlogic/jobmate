@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Meeting` ADD COLUMN `timeZone` VARCHAR(191) NOT NULL DEFAULT 'UTC';

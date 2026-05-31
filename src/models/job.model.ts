@@ -30,6 +30,7 @@ export interface Tag {
 
 export interface JobResponse {
   id: string;
+  jid: number;
   userId: string;
   JobTitle: JobTitle;
   Company: Company;

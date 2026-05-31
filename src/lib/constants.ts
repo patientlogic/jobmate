@@ -8,6 +8,8 @@ import {
   Wrench,
   Zap,
   BookOpen,
+  Video,
+  UserCheck,
 } from "lucide-react";
 
 export const APP_CONSTANTS = {
@@ -56,6 +58,18 @@ export const SIDEBAR_LINKS = [
     icon: BriefcaseBusiness,
     route: "/dashboard/jobs",
     label: "Jobs",
+  },
+  {
+    icon: Video,
+    route: "/dashboard/meetings",
+    label: "My Meetings",
+    myMeetingsAccess: true,
+  },
+  {
+    icon: UserCheck,
+    route: "/dashboard/assigned-meetings",
+    label: "Assigned Meetings",
+    assignedMeetingsAccess: true,
   },
   {
     icon: Zap,

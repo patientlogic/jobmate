@@ -34,6 +34,7 @@ vi.mock("@/components/profile/DownloadFileButton", () => ({
 
 const makeJob = (overrides: Partial<JobResponse> = {}): JobResponse => ({
   id: "job-1",
+  jid: 1,
   userId: "user-1",
   JobTitle: {
     id: "t1",

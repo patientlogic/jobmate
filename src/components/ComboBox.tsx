@@ -33,6 +33,8 @@ interface ComboboxProps {
   field: ControllerRenderProps<any, any>;
   creatable?: boolean;
   onOptionsChange?: (options: any[]) => void;
+  searchPlaceholder?: string;
+  triggerClassName?: string;
 }
 
 export function Combobox({
@@ -40,6 +42,8 @@ export function Combobox({
   field,
   creatable,
   onOptionsChange,
+  searchPlaceholder,
+  triggerClassName,
 }: ComboboxProps) {
   const [newOption, setNewOption] = useState<string>("");
   const [isPopoverOpen, setIsPopoverOpen] = useState<boolean>(false);
@@ -166,7 +170,8 @@ export function Combobox({
             role="combobox"
             className={cn(
               "md:w-[240px] lg:w-[280px] justify-between capitalize",
-              !field.value && "text-muted-foreground"
+              !field.value && "text-muted-foreground",
+              triggerClassName,
             )}
           >
             {field.value
@@ -181,7 +186,7 @@ export function Combobox({
           </Button>
         </FormControl>
       </PopoverTrigger>
-      <PopoverContent className="md:w-[240px] lg:w-[280px] p-0">
+      <PopoverContent className={cn("p-0", triggerClassName ? "w-full min-w-[var(--radix-popover-trigger-width)]" : "md:w-[240px] lg:w-[280px]")}>
         <Command
           filter={(value, search) =>
             value.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
@@ -190,7 +195,10 @@ export function Combobox({
           <CommandInput
             value={newOption}
             onValueChange={(val: string) => setNewOption(val)}
-            placeholder={`${creatable ? "Create or " : ""}Search ${field.name}`}
+            placeholder={
+              searchPlaceholder ??
+              `${creatable ? "Create or " : ""}Search ${field.name}`
+            }
           />
           <CommandEmpty
             onClick={() => {
@@ -229,7 +237,7 @@ export function Combobox({
                 ) : null}
                 {options.map((option) => (
                   <CommandItem
-                    value={option.value}
+                    value={option.value ?? option.label}
                     key={option.id}
                     onSelect={() => {
                       if (field.onChange) {

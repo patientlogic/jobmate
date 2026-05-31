@@ -1,13 +1,14 @@
 "use client";
+
 import { useCallback, useEffect, useState, useTransition } from "react";
-import { NoteDisplay, NoteResponse } from "@/models/note.model";
+import type { MeetingNoteDisplay, MeetingNoteResponse } from "@/models/meetingNote.model";
 import {
-  getNotesByJobId,
-  deleteNote,
-  addNote,
-  updateNote,
-} from "@/actions/note.actions";
-import { NoteCard } from "./NoteCard";
+  addMeetingNote,
+  deleteMeetingNote,
+  getNotesByMeetingId,
+  updateMeetingNote,
+} from "@/actions/meetingNote.actions";
+import { NoteCard } from "../myjobs/NoteCard";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { ChevronDown, Loader, PlusCircle, StickyNote } from "lucide-react";
@@ -19,29 +20,38 @@ import {
 import { toast } from "../ui/use-toast";
 import TiptapEditor from "../TiptapEditor";
 
-type NotesCollapsibleSectionProps = {
-  jobId: string;
-  subjectUserId?: string;
+type MeetingNotesCollapsibleSectionProps = {
+  meetingId?: string;
+  draftNotes?: MeetingNoteDisplay[];
+  onDraftNotesChange?: (notes: MeetingNoteDisplay[]) => void;
 };
 
-export function NotesCollapsibleSection({
-  jobId,
-  subjectUserId,
-}: NotesCollapsibleSectionProps) {
-  const [notes, setNotes] = useState<NoteResponse[]>([]);
+export function MeetingNotesCollapsibleSection({
+  meetingId,
+  draftNotes = [],
+  onDraftNotesChange,
+}: MeetingNotesCollapsibleSectionProps) {
+  const isDraftMode = !meetingId;
+  const [notes, setNotes] = useState<MeetingNoteResponse[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<NoteResponse | null>(null);
+  const [editingNote, setEditingNote] = useState<MeetingNoteDisplay | null>(
+    null,
+  );
   const [isAdding, setIsAdding] = useState(false);
   const [editorContent, setEditorContent] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const displayedNotes: MeetingNoteDisplay[] = isDraftMode ? draftNotes : notes;
+
   const loadNotes = useCallback(async () => {
-    const result = await getNotesByJobId(jobId, subjectUserId);
+    if (!meetingId) return;
+
+    const result = await getNotesByMeetingId(meetingId);
     if (result.success) {
       setNotes(result.data);
     }
-  }, [jobId, subjectUserId]);
+  }, [meetingId]);
 
   useEffect(() => {
     loadNotes();
@@ -54,11 +64,9 @@ export function NotesCollapsibleSection({
     setIsOpen(true);
   };
 
-  const handleEdit = (note: NoteDisplay) => {
-    const fullNote = notes.find((n) => n.id === note.id);
-    if (!fullNote) return;
+  const handleEdit = (note: MeetingNoteDisplay) => {
     setIsAdding(false);
-    setEditingNote(fullNote);
+    setEditingNote(note);
     setEditorContent(note.content);
   };
 
@@ -71,17 +79,43 @@ export function NotesCollapsibleSection({
   const handleSave = () => {
     if (!editorContent.trim()) return;
 
+    if (isDraftMode) {
+      if (!onDraftNotesChange) return;
+
+      if (editingNote) {
+        onDraftNotesChange(
+          draftNotes.map((note) =>
+            note.id === editingNote.id
+              ? { ...note, content: editorContent, isEdited: true }
+              : note,
+          ),
+        );
+      } else {
+        onDraftNotesChange([
+          {
+            id: crypto.randomUUID(),
+            content: editorContent,
+            createdAt: new Date(),
+            isEdited: false,
+          },
+          ...draftNotes,
+        ]);
+      }
+
+      handleCancel();
+      return;
+    }
+
+    if (!meetingId) return;
+
     startTransition(async () => {
       const result = editingNote
-        ? await updateNote(
-            {
-              id: editingNote.id,
-              jobId,
-              content: editorContent,
-            },
-            subjectUserId,
-          )
-        : await addNote({ jobId, content: editorContent }, subjectUserId);
+        ? await updateMeetingNote({
+            id: editingNote.id,
+            meetingId,
+            content: editorContent,
+          })
+        : await addMeetingNote({ meetingId, content: editorContent });
 
       if (result.success) {
         toast({
@@ -107,8 +141,18 @@ export function NotesCollapsibleSection({
   const handleDeleteConfirm = () => {
     if (!deleteConfirmId) return;
 
+    if (isDraftMode) {
+      onDraftNotesChange?.(
+        draftNotes.filter((note) => note.id !== deleteConfirmId),
+      );
+      setDeleteConfirmId(null);
+      return;
+    }
+
+    if (!meetingId) return;
+
     startTransition(async () => {
-      const result = await deleteNote(deleteConfirmId, jobId, subjectUserId);
+      const result = await deleteMeetingNote(deleteConfirmId, meetingId);
       if (result.success) {
         toast({
           variant: "success",
@@ -174,9 +218,9 @@ export function NotesCollapsibleSection({
         <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80">
           <StickyNote className="h-4 w-4" />
           <span className="text-sm font-medium">Notes</span>
-          {notes.length > 0 && (
+          {displayedNotes.length > 0 && (
             <Badge variant="secondary" className="text-xs">
-              {notes.length}
+              {displayedNotes.length}
             </Badge>
           )}
           <ChevronDown
@@ -195,11 +239,16 @@ export function NotesCollapsibleSection({
         </Button>
       </div>
       <CollapsibleContent className="mt-3 space-y-3">
+        {isDraftMode && (
+          <p className="text-xs text-muted-foreground">
+            Notes added here will be saved when you create the meeting.
+          </p>
+        )}
         {isAdding && inlineEditor}
-        {notes.length === 0 && !isAdding ? (
+        {displayedNotes.length === 0 && !isAdding ? (
           <p className="text-sm text-muted-foreground">No notes yet.</p>
         ) : (
-          notes.map((note) =>
+          displayedNotes.map((note) =>
             editingNote?.id === note.id ? (
               <div key={note.id}>{inlineEditor}</div>
             ) : deleteConfirmId === note.id ? (

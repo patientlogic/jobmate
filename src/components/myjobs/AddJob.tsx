@@ -42,7 +42,6 @@ import { SALARY_RANGES } from "@/lib/data/salaryRangeData";
 import { APP_CONSTANTS } from "@/lib/constants";
 import TiptapEditor from "../TiptapEditor";
 import { Input } from "../ui/input";
-import { Switch } from "../ui/switch";
 import { Combobox } from "../ComboBox";
 import { NotesCollapsibleSection } from "./NotesCollapsibleSection";
 import { CoverLetter, Resume } from "@/models/profile.model";
@@ -51,6 +50,20 @@ import { getResumeList } from "@/actions/profile.actions";
 import { getCoverLetterList } from "@/actions/coverLetter.actions";
 import { getAllCompanies } from "@/actions/company.actions";
 import { TagInput } from "./TagInput";
+
+function getAppliedStatusId(statuses: JobStatus[]) {
+  return statuses.find((status) => status.value === "applied")?.id ?? "";
+}
+
+function getNewJobFormValues(jobStatuses: JobStatus[]) {
+  return {
+    type: Object.keys(JOB_TYPES)[0],
+    dueDate: addDays(new Date(), 3),
+    status: getAppliedStatusId(jobStatuses),
+    salaryRange: "1",
+    applied: true,
+  };
+}
 
 type AddJobProps = {
   jobStatuses: JobStatus[];
@@ -89,17 +102,10 @@ export function AddJob({
   const [isPending, startTransition] = useTransition();
   const form = useForm<z.infer<typeof AddJobFormSchema>>({
     resolver: zodResolver(AddJobFormSchema) as any,
-    defaultValues: {
-      type: Object.keys(JOB_TYPES)[0],
-      dueDate: addDays(new Date(), 3),
-      status: jobStatuses[0]?.id,
-      salaryRange: "1",
-    },
+    defaultValues: getNewJobFormValues(jobStatuses),
   });
 
-  const { setValue, reset, watch, resetField } = form;
-
-  const appliedValue = watch("applied");
+  const { setValue, reset } = form;
 
   const loadResumes = useCallback(async () => {
     try {
@@ -169,9 +175,7 @@ export function AddJob({
           dueDate: editJob.dueDate,
           salaryRange: editJob.salaryRange,
           jobDescription: editJob.description,
-          applied: editJob.applied,
           jobUrl: editJob.jobUrl ?? undefined,
-          dateApplied: editJob.appliedDate ?? undefined,
           resume: editJob.Resume?.id ?? undefined,
           coverLetter: editJob.CoverLetter?.id ?? undefined,
           tags: editJob.tags?.map((t) => t.id) ?? [],
@@ -206,7 +210,7 @@ export function AddJob({
       const { success, message } = editJob
         ? await updateJob(data, subjectUserId)
         : await addJob(data, subjectUserId);
-      reset();
+      reset(getNewJobFormValues(jobStatuses));
       setDialogOpen(false);
       if (!success) {
         toast({
@@ -230,20 +234,9 @@ export function AddJob({
   const pageTitle = editJob ? "Edit Job" : "Add Job";
 
   const addJobForm = () => {
-    reset();
+    reset(getNewJobFormValues(jobStatuses));
     resetEditJob();
     setDialogOpen(true);
-  };
-
-  const jobAppliedChange = (applied: boolean) => {
-    if (applied) {
-      form.getValues("status") === jobStatuses[0]?.id &&
-        setValue("status", jobStatuses[1]?.id);
-      setValue("dateApplied", new Date());
-    } else {
-      resetField("dateApplied");
-      setValue("status", jobStatuses[0]?.id);
-    }
   };
 
   const closeDialog = () => setDialogOpen(false);
@@ -415,37 +408,6 @@ export function AddJob({
                   />
                 </div>
 
-                {/* Applied */}
-                <div
-                  className="flex items-center"
-                  data-testid="switch-container"
-                >
-                  <FormField
-                    control={form.control}
-                    name="applied"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row">
-                        <Switch
-                          id="applied-switch"
-                          checked={field.value}
-                          onCheckedChange={(a) => {
-                            field.onChange(a);
-                            jobAppliedChange(a);
-                          }}
-                        />
-                        <FormLabel
-                          htmlFor="applied-switch"
-                          className="flex items-center ml-4 mb-2"
-                        >
-                          {field.value ? "Applied" : "Not Applied"}
-                        </FormLabel>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
                 {/* Status */}
                 <div>
                   <FormField
@@ -458,25 +420,6 @@ export function AddJob({
                           label="Job Status"
                           options={jobStatuses}
                           field={field}
-                        />
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Date Applied */}
-                <div className="flex flex-col">
-                  <FormField
-                    control={form.control}
-                    name="dateApplied"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col">
-                        <FormLabel>Date Applied</FormLabel>
-                        <DatePicker
-                          field={field}
-                          presets={false}
-                          isEnabled={appliedValue}
                         />
                         <FormMessage />
                       </FormItem>

@@ -19,6 +19,14 @@ export function isDeveloperRole(role: UserRole): boolean {
   return role === UserRole.DEVELOPER;
 }
 
+export function canAccessAssignedMeetings(role: UserRole): boolean {
+  return isAdminRole(role) || isDeveloperRole(role);
+}
+
+export function canAccessMyMeetings(role: UserRole): boolean {
+  return !isDeveloperRole(role);
+}
+
 export function canAccessDeveloperOptions(
   role: UserRole,
   isDevelopment = process.env.NODE_ENV === "development",

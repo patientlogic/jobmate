@@ -83,6 +83,7 @@ function MyJobsTable({
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className="whitespace-nowrap">JID</TableHead>
             <TableHead className="hidden w-[100px] sm:table-cell">
               <span className="sr-only">Company Logo</span>
             </TableHead>
@@ -105,6 +106,9 @@ function MyJobsTable({
           {jobs.map((job: JobResponse) => {
             return (
               <TableRow key={job.id}>
+                <TableCell className="font-medium tabular-nums">
+                  {job.jid}
+                </TableCell>
                 <TableCell className="hidden sm:table-cell">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

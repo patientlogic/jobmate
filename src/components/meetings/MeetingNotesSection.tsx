@@ -1,9 +1,13 @@
 "use client";
+
 import { useCallback, useEffect, useState } from "react";
-import { NoteDisplay, NoteResponse } from "@/models/note.model";
-import { getNotesByJobId, deleteNote } from "@/actions/note.actions";
-import { NoteCard } from "./NoteCard";
-import { NoteDialog } from "./NoteDialog";
+import type { MeetingNoteDisplay, MeetingNoteResponse } from "@/models/meetingNote.model";
+import {
+  deleteMeetingNote,
+  getNotesByMeetingId,
+} from "@/actions/meetingNote.actions";
+import { NoteCard } from "../myjobs/NoteCard";
+import { MeetingNoteDialog } from "./MeetingNoteDialog";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -14,34 +18,32 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { toast } from "../ui/use-toast";
-import { useJobsSubjectUserId } from "./JobsSubjectContext";
 
-type NotesSectionProps = {
-  jobId: string;
+type MeetingNotesSectionProps = {
+  meetingId: string;
 };
 
-export function NotesSection({ jobId }: NotesSectionProps) {
-  const subjectUserId = useJobsSubjectUserId();
-  const [notes, setNotes] = useState<NoteResponse[]>([]);
+export function MeetingNotesSection({ meetingId }: MeetingNotesSectionProps) {
+  const [notes, setNotes] = useState<MeetingNoteResponse[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editNote, setEditNote] = useState<NoteResponse | null>(null);
+  const [editNote, setEditNote] = useState<MeetingNoteResponse | null>(null);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [noteIdToDelete, setNoteIdToDelete] = useState("");
 
   const loadNotes = useCallback(async () => {
-    const result = await getNotesByJobId(jobId, subjectUserId);
+    const result = await getNotesByMeetingId(meetingId);
     if (result.success) {
       setNotes(result.data);
       if (result.data.length > 0) setIsOpen(true);
     }
-  }, [jobId, subjectUserId]);
+  }, [meetingId]);
 
   useEffect(() => {
     loadNotes();
   }, [loadNotes]);
 
-  const handleEdit = (note: NoteDisplay) => {
+  const handleEdit = (note: MeetingNoteDisplay) => {
     const fullNote = notes.find((n) => n.id === note.id);
     if (!fullNote) return;
     setEditNote(fullNote);
@@ -54,7 +56,7 @@ export function NotesSection({ jobId }: NotesSectionProps) {
   };
 
   const handleDelete = async () => {
-    const result = await deleteNote(noteIdToDelete, jobId, subjectUserId);
+    const result = await deleteMeetingNote(noteIdToDelete, meetingId);
     if (result.success) {
       toast({
         variant: "success",
@@ -82,7 +84,7 @@ export function NotesSection({ jobId }: NotesSectionProps) {
 
   return (
     <>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="mx-4 mb-4">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="sm:col-span-2">
         <div className="flex items-center justify-between">
           <CollapsibleTrigger className="flex items-center gap-2 hover:opacity-80">
             <StickyNote className="h-4 w-4" />
@@ -122,13 +124,12 @@ export function NotesSection({ jobId }: NotesSectionProps) {
         </CollapsibleContent>
       </Collapsible>
 
-      <NoteDialog
+      <MeetingNoteDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        jobId={jobId}
+        meetingId={meetingId}
         editNote={editNote}
         onSaved={handleSaved}
-        subjectUserId={subjectUserId}
       />
       <DeleteAlertDialog
         pageTitle="note"
