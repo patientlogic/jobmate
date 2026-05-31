@@ -7,16 +7,18 @@ import Sidebar from "@/components/Sidebar";
 type DashboardShellProps = {
   children: React.ReactNode;
   isAdmin: boolean;
+  canAccessDeveloper: boolean;
 };
 
 export default function DashboardShell({
   children,
   isAdmin,
+  canAccessDeveloper,
 }: DashboardShellProps) {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <Sidebar isAdmin={isAdmin} />
+        <Sidebar isAdmin={isAdmin} canAccessDeveloper={canAccessDeveloper} />
         <DashboardMain>{children}</DashboardMain>
       </div>
     </SidebarProvider>

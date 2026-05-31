@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import { DashboardAdminFilter } from "@/components/dashboard/DashboardAdminFilter";
 import { ALL_USERS_SUBJECT_ID, isAllUsersScope } from "@/lib/admin-scope.constants";
+import { isAdminRole, isDeveloperRole, parseUserRole } from "@/lib/user-roles";
 
 import { Metadata } from "next";
 
@@ -15,7 +16,9 @@ type PageProps = {
 
 export default async function Dashboard({ searchParams }: PageProps) {
   const session = await auth();
-  const isAdmin = session?.user?.role === "ADMIN";
+  const role = parseUserRole(session?.user?.role);
+  const isAdmin = isAdminRole(role);
+  const isDeveloper = isDeveloperRole(role);
   const { userId: rawUserId } = await searchParams;
 
   let subjectUserId: string | undefined;
@@ -31,7 +34,11 @@ export default async function Dashboard({ searchParams }: PageProps) {
   return (
     <>
       {isAdmin ? <DashboardAdminFilter /> : null}
-      <DashboardOverview subjectUserId={subjectUserId} isAdmin={isAdmin} />
+      <DashboardOverview
+        subjectUserId={subjectUserId}
+        isAdmin={isAdmin}
+        isDeveloper={isDeveloper}
+      />
     </>
   );
 }

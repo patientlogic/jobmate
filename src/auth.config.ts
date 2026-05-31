@@ -1,5 +1,7 @@
 import type { DefaultSession } from "next-auth";
 import type { NextAuthConfig } from "next-auth";
+import { UserRole } from "@prisma/client";
+import { canAccessDeveloperOptions, parseUserRole } from "@/lib/user-roles";
 
 declare module "next-auth" {
   interface Session {
@@ -33,15 +35,25 @@ export const authConfig = {
       const adminOnlyRoute =
         nextUrl.pathname.startsWith("/dashboard/site-admin") ||
         nextUrl.pathname.startsWith("/dashboard/admin");
+      const developerRoute = nextUrl.pathname.startsWith("/dashboard/developer");
       const isApiRoute = nextUrl.pathname.startsWith("/api");
 
       if (adminOnlyRoute) {
         if (!isLoggedIn) {
           return false;
         }
-        const role =
-          typeof auth!.user.role === "string" ? auth!.user.role : "USER";
-        if (role !== "ADMIN") {
+        const role = parseUserRole(auth!.user.role);
+        if (role !== UserRole.ADMIN) {
+          return Response.redirect(new URL("/dashboard", nextUrl));
+        }
+      }
+
+      if (developerRoute) {
+        if (!isLoggedIn) {
+          return false;
+        }
+        const role = parseUserRole(auth!.user.role);
+        if (!canAccessDeveloperOptions(role)) {
           return Response.redirect(new URL("/dashboard", nextUrl));
         }
       }
@@ -65,8 +77,9 @@ export const authConfig = {
       if (userId) {
         session.user.id = userId;
       }
-      session.user.role =
-        typeof token.role === "string" && token.role ? token.role : "USER";
+      session.user.role = parseUserRole(
+        typeof token.role === "string" ? token.role : undefined,
+      );
       return session;
     },
   },

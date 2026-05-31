@@ -11,12 +11,20 @@ import { APP_NAME } from "@config/app-name";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
 
-function Sidebar({ isAdmin = false }: { isAdmin?: boolean }) {
+function Sidebar({
+  isAdmin = false,
+  canAccessDeveloper = false,
+}: {
+  isAdmin?: boolean;
+  canAccessDeveloper?: boolean;
+}) {
   const path = usePathname();
   const { collapsed, toggleCollapsed } = useSidebar();
 
   const navItems = SIDEBAR_LINKS.filter((item) => {
-    if (item.devOnly && process.env.NODE_ENV !== "development") return false;
+    if ("developerOnly" in item && item.developerOnly && !canAccessDeveloper) {
+      return false;
+    }
     if ("adminOnly" in item && item.adminOnly && !isAdmin) return false;
     return true;
   });

@@ -16,7 +16,8 @@ export default function DeveloperPage() {
       <div className="col-span-3">
         <h1 className="text-3xl font-bold tracking-tight">Developer Options</h1>
         <p className="text-muted-foreground mt-2">
-          Tools for development and testing. Only available in development mode.
+          Tools for development and testing. Available to developer and admin
+          accounts.
         </p>
       </div>
       <div className="col-start-1 self-start">

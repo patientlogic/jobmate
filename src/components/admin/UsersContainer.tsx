@@ -14,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { UserRole } from "@prisma/client";
+import { formatUserRoleLabel } from "@/lib/user-roles";
 import { format } from "date-fns";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -87,12 +88,13 @@ function UsersContainer() {
                       <TableCell className="text-right">
                         <span
                           className={
-                            u.role === UserRole.ADMIN
+                            u.role === UserRole.ADMIN ||
+                            u.role === UserRole.DEVELOPER
                               ? "text-primary font-medium"
                               : undefined
                           }
                         >
-                          {u.role === UserRole.ADMIN ? "Admin" : "User"}
+                          {formatUserRoleLabel(u.role)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right tabular-nums">

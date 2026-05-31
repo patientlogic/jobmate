@@ -12,13 +12,20 @@ import {
 import { SIDEBAR_LINKS } from "@/lib/constants";
 import { auth, signOut } from "@/auth";
 import { getCurrentUser } from "@/utils/user.utils";
+import {
+  canAccessDeveloperOptions,
+  isAdminRole,
+  parseUserRole,
+} from "@/lib/user-roles";
 import { ProfileDropdown } from "./ProfileDropdown";
 import { AppLogo } from "./AppLogo";
 import { APP_NAME } from "@config/app-name";
 
 async function Header() {
   const [user, session] = await Promise.all([getCurrentUser(), auth()]);
-  const isAdmin = session?.user?.role === "ADMIN";
+  const role = parseUserRole(session?.user?.role);
+  const isAdmin = isAdminRole(role);
+  const canAccessDeveloper = canAccessDeveloperOptions(role);
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
       <Sheet>
@@ -35,7 +42,11 @@ async function Header() {
               <AppLogo size="sm" className="justify-start" />
             </SheetClose>
             {SIDEBAR_LINKS.map((item) => {
-              if (item.devOnly && process.env.NODE_ENV !== "development") {
+              if (
+                "developerOnly" in item &&
+                item.developerOnly &&
+                !canAccessDeveloper
+              ) {
                 return null;
               }
               if ("adminOnly" in item && item.adminOnly && !isAdmin) {

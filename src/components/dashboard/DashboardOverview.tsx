@@ -28,6 +28,7 @@ type DashboardOverviewProps = {
   /** When set (e.g. admin monitoring), dashboard metrics load for this user. */
   subjectUserId?: string;
   isAdmin?: boolean;
+  isDeveloper?: boolean;
 };
 
 function buildJobsIndicatorLinks(
@@ -61,6 +62,7 @@ function buildJobsIndicatorLinks(
 export default async function DashboardOverview({
   subjectUserId,
   isAdmin = false,
+  isDeveloper = false,
 }: DashboardOverviewProps) {
   const isAllUsersView = isAllUsersScope(subjectUserId);
   const showQuickActions = !isAdmin || subjectUserId === undefined;
@@ -115,7 +117,7 @@ export default async function DashboardOverview({
       <div className="grid auto-rows-max items-start gap-2 md:gap-2 lg:col-span-3">
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-5">
           {showQuickActions ? (
-            <JobsApplied />
+            <JobsApplied hideNewJob={isDeveloper} />
           ) : (
             <Card className="sm:col-span-2">
               <CardHeader className="pb-3">
@@ -128,23 +130,25 @@ export default async function DashboardOverview({
               </CardHeader>
             </Card>
           )}
-          <NumberCardToggle
-            title="Jobs"
-            metricLabel="Jobs Applied"
-            href={jobsPageHref}
-            data={[
-              {
-                label: "7d",
-                num: jobsAppliedLast7Days,
-                trend: trendFor7Days,
-              },
-              {
-                label: "30d",
-                num: jobsAppliedLast30Days,
-                trend: trendFor30Days,
-              },
-            ]}
-          />
+          {!isDeveloper ? (
+            <NumberCardToggle
+              title="Jobs"
+              metricLabel="Jobs Applied"
+              href={jobsPageHref}
+              data={[
+                {
+                  label: "7d",
+                  num: jobsAppliedLast7Days,
+                  trend: trendFor7Days,
+                },
+                {
+                  label: "30d",
+                  num: jobsAppliedLast30Days,
+                  trend: trendFor30Days,
+                },
+              ]}
+            />
+          ) : null}
           <NumberCardToggle
             title="Interviews"
             metricLabel="Interviews"

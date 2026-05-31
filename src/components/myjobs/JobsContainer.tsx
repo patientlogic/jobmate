@@ -55,6 +55,7 @@ import { ALL_USERS_SUBJECT_ID, isAllUsersScope } from "@/lib/admin-scope.constan
 
 type MyJobsProps = {
   isAdmin?: boolean;
+  isDeveloper?: boolean;
   statuses: JobStatus[];
   companies: Company[];
   titles: JobTitle[];
@@ -65,6 +66,7 @@ type MyJobsProps = {
 
 function JobsContainer({
   isAdmin = false,
+  isDeveloper = false,
   statuses,
   companies,
   titles,
@@ -553,7 +555,7 @@ function JobsContainer({
                 Export
               </span>
             </Button>
-            {!isAllUsersView ? (
+            {!isAllUsersView && !isDeveloper ? (
               <AddJob
                 jobStatuses={statuses}
                 companies={companies}

@@ -92,6 +92,6 @@ export const SIDEBAR_LINKS = [
     icon: Wrench,
     route: "/dashboard/developer",
     label: "Developer Options",
-    devOnly: true,
+    developerOnly: true,
   },
 ];

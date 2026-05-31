@@ -2,12 +2,9 @@ import "server-only";
 import { auth } from "@/auth";
 import { CurrentUser } from "@/models/user.model";
 import { UserRole } from "@prisma/client";
+import { parseUserRole } from "@/lib/user-roles";
 
 export type ViewerContext = CurrentUser & { role: UserRole };
-
-function sessionRoleToUserRole(raw?: string): UserRole {
-  return raw === "ADMIN" ? UserRole.ADMIN : UserRole.USER;
-}
 
 /** Authenticated viewer including role for admin authorization. */
 export async function getViewerContext(): Promise<ViewerContext | null> {
@@ -17,7 +14,7 @@ export async function getViewerContext(): Promise<ViewerContext | null> {
     id: session.user.id,
     name: session.user.name ?? "",
     email: session.user.email ?? "",
-    role: sessionRoleToUserRole(session.user.role),
+    role: parseUserRole(session.user.role),
   };
   return user;
 }
