@@ -11,6 +11,7 @@ type AuthUserLookup = {
   email: string;
   password: string;
   role: string;
+  isActivated: boolean;
 };
 
 async function getUser(email: string): Promise<AuthUserLookup | undefined> {
@@ -23,6 +24,7 @@ async function getUser(email: string): Promise<AuthUserLookup | undefined> {
         email: true,
         password: true,
         role: true,
+        isActivated: true,
       },
     });
     return user ?? undefined;
@@ -47,6 +49,9 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
           if (!user) return null;
           const passwordsMatch = await bcrypt.compare(password, user.password);
           if (passwordsMatch) {
+            if (user.role !== "ADMIN" && !user.isActivated) {
+              return null;
+            }
             return {
               id: user.id,
               name: user.name,

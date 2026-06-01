@@ -1,5 +1,6 @@
 import { authenticate } from "@/actions/auth.actions";
 import SigninForm from "@/components/auth/SigninForm";
+import { ACCOUNT_ACTIVATION } from "@/lib/constants";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useRouter } from "next/navigation";
 
@@ -74,6 +75,26 @@ describe("SigninForm Component", () => {
     await waitFor(() => {
       expect(authenticate).toHaveBeenCalledWith("", expect.any(FormData));
       expect(mockPush).toHaveBeenCalledWith("/dashboard");
+    });
+  });
+
+  it("redirects to account activation when login is blocked pending activation", async () => {
+    (authenticate as any).mockResolvedValueOnce(
+      ACCOUNT_ACTIVATION.PENDING_LOGIN_CODE,
+    );
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "user@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "password123" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /login/i }));
+
+    await waitFor(() => {
+      expect(authenticate).toHaveBeenCalledWith("", expect.any(FormData));
+      expect(mockPush).toHaveBeenCalledWith("/account-activation");
     });
   });
 

@@ -21,6 +21,14 @@ export const APP_CONSTANTS = {
   AI_SLOW_RESPONSE_THRESHOLD_MS: 15_000, // 15 seconds
 } as const;
 
+export const ACCOUNT_ACTIVATION = {
+  TELEGRAM_URL: "https://t.me/alisonitcenter",
+  TELEGRAM_LABEL: "Alison IT Center - Dev",
+  PENDING_LOGIN_CODE: "ACCOUNT_PENDING_ACTIVATION",
+  PENDING_LOGIN_MESSAGE:
+    "Your account is pending activation. Join our Telegram community and contact the owner to activate your account.",
+} as const;
+
 export const SCHEDULER_CONSTANTS = {
   ENABLED: true,
   CRON_EXPRESSION: "0 * * * *", // Every hour at minute 0

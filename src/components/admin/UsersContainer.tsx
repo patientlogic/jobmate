@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   listJobBidders,
+  setUserActivated,
   type JobBidderSummary,
 } from "@/actions/site-admin.actions";
 import {
@@ -19,6 +20,8 @@ import { format } from "date-fns";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Loading from "../Loading";
+import { Switch } from "../ui/switch";
+import { toast } from "../ui/use-toast";
 
 function UsersContainer() {
   const [bidders, setBidders] = useState<JobBidderSummary[]>([]);
@@ -43,6 +46,30 @@ function UsersContainer() {
     loadUsers();
   }, [loadUsers]);
 
+  const onActivationChange = async (userId: string, isActivated: boolean) => {
+    const result = await setUserActivated(userId, isActivated);
+    if (result.success) {
+      setBidders((prev) =>
+        prev.map((user) =>
+          user.id === userId ? { ...user, isActivated } : user,
+        ),
+      );
+      toast({
+        variant: "success",
+        description: isActivated
+          ? "User account activated."
+          : "User account deactivated.",
+      });
+      return;
+    }
+
+    toast({
+      variant: "destructive",
+      title: "Error!",
+      description: result.message ?? "Failed to update activation.",
+    });
+  };
+
   return (
     <div className="col-span-3">
       <Card>
@@ -66,6 +93,7 @@ function UsersContainer() {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead className="text-right">Role</TableHead>
+                    <TableHead className="text-center">Activated</TableHead>
                     <TableHead className="text-right">Applied jobs</TableHead>
                     <TableHead className="text-right">All tracked jobs</TableHead>
                     <TableHead>Joined</TableHead>
@@ -96,6 +124,21 @@ function UsersContainer() {
                         >
                           {formatUserRoleLabel(u.role)}
                         </span>
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {u.role === UserRole.ADMIN ? (
+                          <span className="text-xs text-muted-foreground">
+                            Always
+                          </span>
+                        ) : (
+                          <Switch
+                            checked={u.isActivated}
+                            onCheckedChange={(checked) =>
+                              void onActivationChange(u.id, checked)
+                            }
+                            aria-label={`Activate ${u.name}`}
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="text-right tabular-nums">
                         {u.jobsAppliedCount}

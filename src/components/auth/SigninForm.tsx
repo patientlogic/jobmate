@@ -16,6 +16,7 @@ import { Input } from "../ui/input";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { SigninFormSchema } from "@/models/signinForm.schema";
+import { ACCOUNT_ACTIVATION } from "@/lib/constants";
 import Loading from "../Loading";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -42,6 +43,10 @@ function SigninForm() {
       formData.set("email", data.email);
       formData.set("password", data.password);
       const errorResponse = await authenticate("", formData);
+      if (errorResponse === ACCOUNT_ACTIVATION.PENDING_LOGIN_CODE) {
+        router.push("/account-activation");
+        return;
+      }
       if (errorResponse) {
         setError(errorResponse);
       } else {

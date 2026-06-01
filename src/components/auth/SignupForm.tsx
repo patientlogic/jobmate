@@ -2,7 +2,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { signup, authenticate } from "@/actions/auth.actions";
+import { signup } from "@/actions/auth.actions";
 import {
   Form,
   FormControl,
@@ -15,9 +15,10 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { SignupFormSchema } from "@/models/signupForm.schema";
+import { SignupFormSchema, SIGNUP_ROLE_OPTIONS } from "@/models/signupForm.schema";
 import Loading from "../Loading";
 import { Eye, EyeOff } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 function SignupForm() {
   const [isPending, startTransition] = useTransition();
@@ -29,6 +30,7 @@ function SignupForm() {
       name: "",
       email: "",
       password: "",
+      role: "USER",
     },
   });
 
@@ -44,15 +46,7 @@ function SignupForm() {
         setError(result.error);
         return;
       }
-      const formData = new FormData();
-      formData.set("email", data.email);
-      formData.set("password", data.password);
-      const authError = await authenticate("", formData);
-      if (authError) {
-        setError(authError);
-      } else {
-        router.push("/dashboard");
-      }
+      router.push("/account-activation");
     });
   };
 
@@ -131,6 +125,39 @@ function SignupForm() {
                       )}
                     </Button>
                   </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <div className="grid gap-2">
+            <FormField
+              control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>I am a</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="grid gap-2"
+                    >
+                      {SIGNUP_ROLE_OPTIONS.map((option) => (
+                        <FormItem
+                          key={option.value}
+                          className="flex items-center space-x-3 space-y-0"
+                        >
+                          <FormControl>
+                            <RadioGroupItem value={option.value} />
+                          </FormControl>
+                          <FormLabel className="font-normal">
+                            {option.label}
+                          </FormLabel>
+                        </FormItem>
+                      ))}
+                    </RadioGroup>
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

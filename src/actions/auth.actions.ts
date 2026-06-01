@@ -5,19 +5,21 @@ import { delay } from "@/utils/delay";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { SignupFormSchema } from "@/models/signupForm.schema";
-import { JOB_SOURCES, JOB_STATUSES } from "@/lib/constants";
+import { JOB_SOURCES, JOB_STATUSES, ACCOUNT_ACTIVATION } from "@/lib/constants";
+import { UserRole } from "@prisma/client";
 
 export async function signup(formData: {
   name: string;
   email: string;
   password: string;
+  role: "USER" | "DEVELOPER";
 }) {
   const parsed = SignupFormSchema.safeParse(formData);
   if (!parsed.success) {
     return { error: "Invalid form data." };
   }
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, role } = parsed.data;
 
   const existingUser = await prisma.user.findUnique({
     where: { email },
@@ -28,9 +30,16 @@ export async function signup(formData: {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
+  const userRole = role === "DEVELOPER" ? UserRole.DEVELOPER : UserRole.USER;
 
   const newUser = await prisma.user.create({
-    data: { name, email, password: hashedPassword },
+    data: {
+      name,
+      email,
+      password: hashedPassword,
+      role: userRole,
+      isActivated: false,
+    },
   });
 
   await prisma.jobSource.createMany({
@@ -57,10 +66,29 @@ export async function authenticate(
   formData: FormData
 ) {
   try {
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { password: true, isActivated: true, role: true },
+    });
+
+    if (user) {
+      const passwordsMatch = await bcrypt.compare(password, user.password);
+      if (
+        passwordsMatch &&
+        user.role !== UserRole.ADMIN &&
+        !user.isActivated
+      ) {
+        return ACCOUNT_ACTIVATION.PENDING_LOGIN_CODE;
+      }
+    }
+
     await delay(1000);
     await signIn("credentials", {
-      email: formData.get("email") as string,
-      password: formData.get("password") as string,
+      email,
+      password,
       redirect: false,
     });
     return null;

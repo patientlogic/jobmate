@@ -12,6 +12,7 @@ export type JobBidderSummary = {
   name: string;
   email: string;
   role: UserRole;
+  isActivated: boolean;
   createdAt: Date;
   jobsTotal: number;
   jobsAppliedCount: number;
@@ -59,6 +60,7 @@ export async function listJobBidders(): Promise<JobBidderSummary[]> {
       name: true,
       email: true,
       role: true,
+      isActivated: true,
       createdAt: true,
     },
   });
@@ -68,6 +70,41 @@ export async function listJobBidders(): Promise<JobBidderSummary[]> {
     jobsTotal: totalMap.get(u.id) ?? 0,
     jobsAppliedCount: appliedMap.get(u.id) ?? 0,
   }));
+}
+
+export async function setUserActivated(
+  userId: string,
+  isActivated: boolean,
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const viewer = await getViewerContext();
+    if (!viewer) {
+      throw new Error("Not authenticated");
+    }
+    assertSiteAdmin(viewer.role);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, role: true },
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    if (user.role === UserRole.ADMIN) {
+      throw new Error("Admin accounts cannot be deactivated");
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isActivated },
+    });
+
+    return { success: true };
+  } catch (error) {
+    return handleError(error, "Failed to update user activation.");
+  }
 }
 
 export async function getBidderProfileForAdmin(userId: string) {

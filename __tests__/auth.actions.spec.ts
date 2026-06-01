@@ -2,7 +2,7 @@ import { signup, authenticate } from "@/actions/auth.actions";
 import { signIn } from "@/auth";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { JOB_SOURCES, JOB_STATUSES } from "@/lib/constants";
+import { JOB_SOURCES, JOB_STATUSES, ACCOUNT_ACTIVATION } from "@/lib/constants";
 import { delay } from "@/utils/delay";
 import { AuthError } from "next-auth";
 
@@ -28,8 +28,9 @@ vi.mock("@/auth", () => ({
 }));
 
 vi.mock("bcryptjs", () => ({
-  default: { hash: vi.fn() },
+  default: { hash: vi.fn(), compare: vi.fn() },
   hash: vi.fn(),
+  compare: vi.fn(),
 }));
 
 vi.mock("@/utils/delay", () => ({
@@ -64,6 +65,7 @@ describe("Auth Actions", () => {
       name: "John Doe",
       email: "john@example.com",
       password: "password123",
+      role: "USER" as const,
     };
 
     const mockNewUser = {
@@ -92,6 +94,8 @@ describe("Auth Actions", () => {
           name: validSignupData.name,
           email: validSignupData.email,
           password: "hashed_password_123",
+          role: "USER",
+          isActivated: false,
         },
       });
       expect(prisma.jobSource.createMany).toHaveBeenCalledWith({
@@ -373,6 +377,7 @@ describe("Auth Actions", () => {
     mockFormData.set("password", "password123");
 
     it("should return null on successful authentication", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue(null);
       (signIn as any).mockResolvedValue(undefined);
 
       const result = await authenticate("", mockFormData);
@@ -386,7 +391,22 @@ describe("Auth Actions", () => {
       });
     });
 
+    it("should block login for inactive accounts", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue({
+        password: "hashed_password_123",
+        isActivated: false,
+        role: "USER",
+      });
+      (bcrypt.compare as any).mockResolvedValue(true);
+
+      const result = await authenticate("", mockFormData);
+
+      expect(result).toEqual(ACCOUNT_ACTIVATION.PENDING_LOGIN_CODE);
+      expect(signIn).not.toHaveBeenCalled();
+    });
+
     it("should return error message on invalid credentials", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue(null);
       const authError = new AuthError("CredentialsSignin");
       (signIn as any).mockRejectedValue(authError);
 
@@ -401,6 +421,7 @@ describe("Auth Actions", () => {
     });
 
     it("should return generic error message on unknown error", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue(null);
       const authError = new AuthError("UnknownError");
       (signIn as any).mockRejectedValue(authError);
 
@@ -410,6 +431,7 @@ describe("Auth Actions", () => {
     });
 
     it("should call delay before signing in", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue(null);
       (signIn as any).mockResolvedValue(undefined);
 
       await authenticate("", mockFormData);
@@ -422,6 +444,7 @@ describe("Auth Actions", () => {
     });
 
     it("should rethrow non-AuthError exceptions", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue(null);
       const error = new Error("Database error");
       (signIn as any).mockRejectedValue(error);
 
@@ -431,6 +454,7 @@ describe("Auth Actions", () => {
     });
 
     it("should extract form data correctly", async () => {
+      (prisma.user.findUnique as any).mockResolvedValue(null);
       (signIn as any).mockResolvedValue(undefined);
       const testFormData = new FormData();
       testFormData.set("email", "test@example.com");

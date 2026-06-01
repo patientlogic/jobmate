@@ -1,12 +1,10 @@
-import { signup, authenticate } from "@/actions/auth.actions";
+import { signup } from "@/actions/auth.actions";
 import SignupForm from "@/components/auth/SignupForm";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { useRouter } from "next/navigation";
 
-// Mock the external dependencies
 vi.mock("@/actions/auth.actions", () => ({
   signup: vi.fn(),
-  authenticate: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -125,42 +123,13 @@ describe("SignupForm Component", () => {
       name: "John Doe",
       email: "john@example.com",
       password: "password123",
+      role: "USER",
     });
-    expect(authenticate).not.toHaveBeenCalled();
-  });
-
-  it("should display error message when authentication fails after signup", async () => {
-    const authError = "Something went wrong.";
-    (signup as any).mockResolvedValueOnce({ success: true });
-    (authenticate as any).mockResolvedValueOnce(authError);
-
-    fireEvent.change(screen.getByLabelText("Full Name"), {
-      target: { value: "John Doe" },
-    });
-    fireEvent.change(screen.getByLabelText("Email"), {
-      target: { value: "john@example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("Password"), {
-      target: { value: "password123" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: /create an account/i }));
-
-    await waitFor(() => {
-      expect(screen.getByText(authError)).toBeInTheDocument();
-    });
-    expect(signup).toHaveBeenCalledWith({
-      name: "John Doe",
-      email: "john@example.com",
-      password: "password123",
-    });
-    expect(authenticate).toHaveBeenCalledWith("", expect.any(FormData));
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  it("submits the form successfully and redirects to dashboard", async () => {
+  it("submits the form successfully and redirects to account activation", async () => {
     (signup as any).mockResolvedValueOnce({ success: true });
-    (authenticate as any).mockResolvedValueOnce(null);
 
     fireEvent.change(screen.getByLabelText("Full Name"), {
       target: { value: "John Doe" },
@@ -179,9 +148,9 @@ describe("SignupForm Component", () => {
         name: "John Doe",
         email: "john@example.com",
         password: "password123",
+        role: "USER",
       });
-      expect(authenticate).toHaveBeenCalledWith("", expect.any(FormData));
-      expect(mockPush).toHaveBeenCalledWith("/dashboard");
+      expect(mockPush).toHaveBeenCalledWith("/account-activation");
     });
   });
 });
