@@ -17,14 +17,16 @@ function Settings() {
   const searchParams = useSearchParams();
   const sectionParam = searchParams.get("section");
   const [activeSection, setActiveSection] = useState<SettingsSection>(
-    isSettingsSection(sectionParam) ? sectionParam : "ai-provider",
+    isSettingsSection(sectionParam) ? sectionParam : "my-profile",
   );
 
   useEffect(() => {
     if (isSettingsSection(sectionParam)) {
       setActiveSection(sectionParam);
+      return;
     }
-  }, [sectionParam]);
+    router.replace(`${pathname}?section=my-profile`, { scroll: false });
+  }, [sectionParam, pathname, router]);
 
   const onSectionChange = (section: SettingsSection) => {
     setActiveSection(section);
