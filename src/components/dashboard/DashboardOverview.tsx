@@ -125,7 +125,7 @@ export default async function DashboardOverview({
       <div className="grid auto-rows-max items-start gap-2 md:gap-2 lg:col-span-3">
         <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-4 xl:grid-cols-5">
           {showQuickActions ? (
-            <JobsApplied hideNewJob={isDeveloper} />
+            <JobsApplied />
           ) : (
             <Card className="sm:col-span-2">
               <CardHeader className="pb-3">
@@ -138,25 +138,24 @@ export default async function DashboardOverview({
               </CardHeader>
             </Card>
           )}
-          {!isDeveloper ? (
-            <NumberCardToggle
-              title="Jobs"
-              metricLabel="Jobs Applied"
-              href={jobsPageHref}
-              data={[
-                {
-                  label: "7d",
-                  num: jobsAppliedLast7Days,
-                  trend: trendFor7Days,
-                },
-                {
-                  label: "30d",
-                  num: jobsAppliedLast30Days,
-                  trend: trendFor30Days,
-                },
-              ]}
-            />
-          ) : (
+          <NumberCardToggle
+            title="Jobs"
+            metricLabel="Jobs Applied"
+            href={jobsPageHref}
+            data={[
+              {
+                label: "7d",
+                num: jobsAppliedLast7Days,
+                trend: trendFor7Days,
+              },
+              {
+                label: "30d",
+                num: jobsAppliedLast30Days,
+                trend: trendFor30Days,
+              },
+            ]}
+          />
+          {isDeveloper ? (
             <NumberCardToggle
               title="Assigned Meetings"
               metricLabel="Assigned"
@@ -174,7 +173,7 @@ export default async function DashboardOverview({
                 },
               ]}
             />
-          )}
+          ) : null}
           <NumberCardToggle
             title="Interviews"
             metricLabel="Interviews"

@@ -1,6 +1,6 @@
 import { auth } from "@/auth";
 import { Metadata } from "next";
-import { isAdminRole, isDeveloperRole, parseUserRole } from "@/lib/user-roles";
+import { isAdminRole, parseUserRole } from "@/lib/user-roles";
 
 import { getJobSourceList, getStatusList } from "@/actions/job.actions";
 import JobsContainer from "@/components/myjobs/JobsContainer";
@@ -17,7 +17,6 @@ async function JobsPage() {
   const session = await auth();
   const role = parseUserRole(session?.user?.role);
   const isAdmin = isAdminRole(role);
-  const isDeveloper = isDeveloperRole(role);
 
   const [statuses, companiesResult, titles, locations, sources, tags] =
     await Promise.all([
@@ -36,7 +35,6 @@ async function JobsPage() {
     <div className="col-span-3">
       <JobsContainer
         isAdmin={isAdmin}
-        isDeveloper={isDeveloper}
         companies={companies}
         titles={jobTitles}
         locations={jobLocations}

@@ -8,6 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { addJob, updateJob } from "@/actions/job.actions";
+import { addNote } from "@/actions/note.actions";
 import { Loader, PlusCircle } from "lucide-react";
 import { Button } from "../ui/button";
 import { useForm } from "react-hook-form";
@@ -43,7 +44,7 @@ import { APP_CONSTANTS } from "@/lib/constants";
 import TiptapEditor from "../TiptapEditor";
 import { Input } from "../ui/input";
 import { Combobox } from "../ComboBox";
-import { NotesCollapsibleSection } from "./NotesCollapsibleSection";
+import { NotesCollapsibleSection, type DraftNote } from "./NotesCollapsibleSection";
 import { CoverLetter, Resume } from "@/models/profile.model";
 import CreateResume from "../profile/CreateResume";
 import { getResumeList } from "@/actions/profile.actions";
@@ -99,6 +100,7 @@ export function AddJob({
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [coverLetters, setCoverLetters] = useState<CoverLetter[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>(tags);
+  const [draftNotes, setDraftNotes] = useState<DraftNote[]>([]);
   const [isPending, startTransition] = useTransition();
   const form = useForm<z.infer<typeof AddJobFormSchema>>({
     resolver: zodResolver(AddJobFormSchema) as any,
@@ -207,11 +209,12 @@ export function AddJob({
 
   function onSubmit(data: z.infer<typeof AddJobFormSchema>) {
     startTransition(async () => {
-      const { success, message } = editJob
+      const result = editJob
         ? await updateJob(data, subjectUserId)
         : await addJob(data, subjectUserId);
-      reset(getNewJobFormValues(jobStatuses));
-      setDialogOpen(false);
+      const success = result?.success;
+      const message = result?.message;
+
       if (!success) {
         toast({
           variant: "destructive",
@@ -220,6 +223,29 @@ export function AddJob({
         });
         return;
       }
+
+      if (!editJob && result?.job?.id && draftNotes.length > 0) {
+        for (const note of draftNotes) {
+          const noteResult = await addNote(
+            { jobId: result.job.id, content: note.content },
+            subjectUserId,
+          );
+          if (!noteResult?.success) {
+            toast({
+              variant: "destructive",
+              title: "Error!",
+              description:
+                noteResult?.message ??
+                "Job saved, but one or more notes failed to save.",
+            });
+            break;
+          }
+        }
+      }
+
+      reset(getNewJobFormValues(jobStatuses));
+      setDraftNotes([]);
+      setDialogOpen(false);
       resetEditJob();
       onJobSaved?.();
       toast({
@@ -235,11 +261,15 @@ export function AddJob({
 
   const addJobForm = () => {
     reset(getNewJobFormValues(jobStatuses));
+    setDraftNotes([]);
     resetEditJob();
     setDialogOpen(true);
   };
 
-  const closeDialog = () => setDialogOpen(false);
+  const closeDialog = () => {
+    setDraftNotes([]);
+    setDialogOpen(false);
+  };
 
   const createResume = () => {
     setResumeDialogOpen(true);
@@ -554,12 +584,12 @@ export function AddJob({
                     )}
                   />
                 </div>
-                {editJob && (
-                  <NotesCollapsibleSection
-                    jobId={editJob.id}
-                    subjectUserId={subjectUserId}
-                  />
-                )}
+                <NotesCollapsibleSection
+                  jobId={editJob?.id}
+                  subjectUserId={subjectUserId}
+                  draftNotes={editJob ? undefined : draftNotes}
+                  onDraftNotesChange={editJob ? undefined : setDraftNotes}
+                />
                 <div className="md:col-span-2">
                   <DialogFooter
                   // className="md:col-span
