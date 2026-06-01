@@ -1,6 +1,15 @@
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
+
 import { auth } from "@/auth";
-import db from "@/lib/db";
+import LandingPage from "@/components/landing/LandingPage";
+import { APP_NAME } from "@config/app-name";
+
+export const metadata: Metadata = {
+  title: APP_NAME,
+  description:
+    "Build your career with high-paying remote opportunities. Personalized job matching and end-to-end interview support for developers.",
+};
 
 export default async function RootPage() {
   const session = await auth();
@@ -9,11 +18,5 @@ export default async function RootPage() {
     redirect("/dashboard");
   }
 
-  const userCount = await db.user.count();
-
-  if (userCount === 0) {
-    redirect("/signup");
-  } else {
-    redirect("/signin");
-  }
+  return <LandingPage />;
 }

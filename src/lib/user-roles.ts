@@ -31,7 +31,10 @@ export function canAccessDeveloperOptions(
   role: UserRole,
   isDevelopment = process.env.NODE_ENV === "development",
 ): boolean {
-  return isDevelopment || isAdminRole(role) || isDeveloperRole(role);
+  if (!isDevelopment) {
+    return false;
+  }
+  return isAdminRole(role) || isDeveloperRole(role);
 }
 
 export function formatUserRoleLabel(role: UserRole): string {
