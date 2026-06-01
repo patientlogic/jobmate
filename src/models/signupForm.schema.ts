@@ -3,7 +3,10 @@ import { z } from "zod";
 export const SIGNUP_ROLE_OPTIONS = [
   { value: "USER", label: "Job bidder" },
   { value: "DEVELOPER", label: "Developer/Caller" },
+  { value: "ARTIST", label: "Artist" },
 ] as const;
+
+export type SignupRole = (typeof SIGNUP_ROLE_OPTIONS)[number]["value"];
 
 export const SignupFormSchema = z.object({
   name: z.string().min(2, {
@@ -24,7 +27,7 @@ export const SignupFormSchema = z.object({
     .min(6, {
       message: "Password must be at least 6 characters.",
     }),
-  role: z.enum(["USER", "DEVELOPER"], {
+  role: z.enum(["USER", "DEVELOPER", "ARTIST"], {
     error: "Please select a role.",
   }),
 });

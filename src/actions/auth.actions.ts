@@ -4,15 +4,26 @@ import { signIn } from "../auth";
 import { delay } from "@/utils/delay";
 import prisma from "@/lib/db";
 import bcrypt from "bcryptjs";
-import { SignupFormSchema } from "@/models/signupForm.schema";
+import { SignupFormSchema, type SignupRole } from "@/models/signupForm.schema";
 import { JOB_SOURCES, JOB_STATUSES, ACCOUNT_ACTIVATION } from "@/lib/constants";
 import { UserRole } from "@prisma/client";
+
+function toUserRole(role: SignupRole): UserRole {
+  switch (role) {
+    case "DEVELOPER":
+      return UserRole.DEVELOPER;
+    case "ARTIST":
+      return UserRole.ARTIST;
+    default:
+      return UserRole.USER;
+  }
+}
 
 export async function signup(formData: {
   name: string;
   email: string;
   password: string;
-  role: "USER" | "DEVELOPER";
+  role: SignupRole;
 }) {
   const parsed = SignupFormSchema.safeParse(formData);
   if (!parsed.success) {
@@ -30,7 +41,7 @@ export async function signup(formData: {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const userRole = role === "DEVELOPER" ? UserRole.DEVELOPER : UserRole.USER;
+  const userRole = toUserRole(role);
 
   const newUser = await prisma.user.create({
     data: {

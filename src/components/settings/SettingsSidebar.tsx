@@ -1,20 +1,29 @@
 "use client";
 
-import { Bot, Key, Palette } from "lucide-react";
+import { CircleUser, Bot, Key, Palette } from "lucide-react";
 import { Button } from "../ui/button";
 import { cn } from "@/lib/utils";
 
-export type SettingsSection = "ai-provider" | "api-keys" | "appearance";
+export type SettingsSection =
+  | "my-profile"
+  | "ai-provider"
+  | "api-keys"
+  | "appearance";
 
-const SETTINGS_SECTIONS: {
+export const SETTINGS_SECTIONS: {
   id: SettingsSection;
   label: string;
   icon: typeof Bot;
 }[] = [
+  { id: "my-profile", label: "My Profile", icon: CircleUser },
   { id: "ai-provider", label: "AI Provider", icon: Bot },
   { id: "api-keys", label: "API Keys", icon: Key },
   { id: "appearance", label: "Appearance", icon: Palette },
 ];
+
+export function isSettingsSection(value: string | null): value is SettingsSection {
+  return SETTINGS_SECTIONS.some((section) => section.id === value);
+}
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;

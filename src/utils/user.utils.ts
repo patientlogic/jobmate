@@ -1,5 +1,6 @@
 import "server-only";
 import { auth } from "@/auth";
+import prisma from "@/lib/db";
 import { CurrentUser } from "@/models/user.model";
 import { UserRole } from "@prisma/client";
 import { parseUserRole } from "@/lib/user-roles";
@@ -23,9 +24,17 @@ export async function getViewerContext(): Promise<ViewerContext | null> {
 export const getCurrentUser = async (): Promise<CurrentUser | null> => {
   const viewer = await getViewerContext();
   if (!viewer) return null;
+
+  const profile = await prisma.userProfile.findUnique({
+    where: { userId: viewer.id },
+    select: { avatarUrl: true, displayName: true },
+  });
+
   return {
     id: viewer.id,
     name: viewer.name,
     email: viewer.email,
+    displayName: profile?.displayName || viewer.name,
+    avatarUrl: profile?.avatarUrl ?? null,
   };
 };

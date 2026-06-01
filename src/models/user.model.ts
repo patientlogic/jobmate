@@ -10,6 +10,8 @@ export type CurrentUser = {
   id: string;
   name: string;
   email: string;
+  displayName?: string;
+  avatarUrl?: string | null;
   iat?: number;
   exp?: number;
 };

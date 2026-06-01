@@ -16,6 +16,7 @@ enum UserRole {
   USER
   ADMIN
   DEVELOPER
+  ARTIST
 }
 
 model User {
@@ -38,6 +39,7 @@ model User {
   Task         Task[]
   Automation   Automation[]
   Settings     UserSettings?
+  userProfile  UserProfile?
   ApiKey       ApiKey[]
   Note         Note[]
   MeetingNote  MeetingNote[]
@@ -71,6 +73,40 @@ model UserSettings {
   settings  String   @db.Text
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model UserProfile {
+  id          String              @id @default(uuid())
+  userId      String              @unique
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName String              @default("")
+  headline    String              @default("")
+  bio         String?             @db.Text
+  avatarUrl   String?             @db.VarChar(2048)
+  skills      Json?
+  resumeUrl   String?             @db.VarChar(2048)
+  resumeName  String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  experiences ProfileExperience[]
+}
+
+model ProfileExperience {
+  id            String      @id @default(uuid())
+  userProfileId String
+  userProfile   UserProfile @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  title         String
+  company       String
+  location      String?
+  startDate     DateTime
+  endDate       DateTime?
+  isCurrent     Boolean     @default(false)
+  description   String?     @db.Text
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userProfileId])
 }
 
 model Profile {

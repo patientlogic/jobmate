@@ -117,7 +117,8 @@ function UsersContainer() {
                         <span
                           className={
                             u.role === UserRole.ADMIN ||
-                            u.role === UserRole.DEVELOPER
+                            u.role === UserRole.DEVELOPER ||
+                            u.role === UserRole.ARTIST
                               ? "text-primary font-medium"
                               : undefined
                           }

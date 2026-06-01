@@ -1,17 +1,30 @@
-import Image from "next/image";
+"use client";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CurrentUser } from "@/models/user.model";
-// import { useSession } from "next-auth/react";
+
+function getInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
+}
 
 export default function UserAvatar({ user }: { user: CurrentUser | null }) {
-  // const { data: session, status } = useSession();
   if (!user) return null;
+
+  const label = user.displayName?.trim() || user.name || user.email;
+
   return (
-    <Image
-      src="/images/placeholder-user.jpg"
-      width={36}
-      height={36}
-      alt="Avatar"
-      className="overflow-hidden rounded-full"
-    />
+    <Avatar className="h-9 w-9">
+      {user.avatarUrl ? (
+        <AvatarImage src={user.avatarUrl} alt={label} />
+      ) : null}
+      <AvatarFallback className="text-xs font-semibold">
+        {getInitials(label) || "U"}
+      </AvatarFallback>
+    </Avatar>
   );
 }
