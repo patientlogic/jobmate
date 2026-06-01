@@ -52,6 +52,7 @@ export function handleError(error: unknown, msg = "Server Error.") {
     }
     return { success: false, message: error.message || msg };
   }
+  return { success: false, message: msg };
 }
 
 export function getTimestampedFileName(originalName: string): string {
