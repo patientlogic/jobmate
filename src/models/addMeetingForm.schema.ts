@@ -3,7 +3,8 @@ import { z } from "zod";
 export const AddMeetingFormSchema = z
   .object({
     id: z.string().optional(),
-    jobId: z.string().min(1, "Please select an applied job"),
+    jobId: z.string().optional(),
+    jobUrl: z.string().optional(),
     positionRole: z.string().min(1, "Position/Role is required"),
     accountName: z.string().optional(),
     startDateTime: z.date(),

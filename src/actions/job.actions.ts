@@ -397,6 +397,60 @@ export const createJobSource = async (
   }
 };
 
+const PLACEHOLDER_CATALOG_VALUE = "not-specified";
+
+async function getOrCreatePlaceholderJobTitle(userId: string): Promise<string> {
+  const existing = await prisma.jobTitle.findFirst({
+    where: { value: PLACEHOLDER_CATALOG_VALUE, createdBy: userId },
+  });
+  if (existing) {
+    return existing.id;
+  }
+
+  const created = await prisma.jobTitle.create({
+    data: {
+      label: "Not specified",
+      value: PLACEHOLDER_CATALOG_VALUE,
+      createdBy: userId,
+    },
+  });
+  return created.id;
+}
+
+async function getOrCreatePlaceholderCompany(userId: string): Promise<string> {
+  const existing = await prisma.company.findFirst({
+    where: { value: PLACEHOLDER_CATALOG_VALUE, createdBy: userId },
+  });
+  if (existing) {
+    return existing.id;
+  }
+
+  const created = await prisma.company.create({
+    data: {
+      label: "Not specified",
+      value: PLACEHOLDER_CATALOG_VALUE,
+      createdBy: userId,
+    },
+  });
+  return created.id;
+}
+
+async function resolveDefaultStatusId(statusId?: string): Promise<string> {
+  if (statusId) {
+    return statusId;
+  }
+
+  const status =
+    (await prisma.jobStatus.findFirst({ where: { value: "applied" } })) ??
+    (await prisma.jobStatus.findFirst());
+
+  if (!status) {
+    throw new Error("No job status found");
+  }
+
+  return status.id;
+}
+
 export const addJob = async (
   data: z.infer<typeof AddJobFormSchema>,
   subjectUserId?: string,
@@ -412,34 +466,34 @@ export const addJob = async (
       status,
       source,
       salaryRange,
-      dueDate,
       jobDescription,
       jobUrl,
       resume,
-      coverLetter,
       tags,
     } = data;
 
     const tagIds = tags ?? [];
+    const jobTitleId = title || (await getOrCreatePlaceholderJobTitle(ownerId));
+    const companyId = company || (await getOrCreatePlaceholderCompany(ownerId));
+    const statusId = await resolveDefaultStatusId(status);
+    const jobType = type || Object.keys(JOB_TYPES)[0];
 
     const job = await prisma.job.create({
       data: {
-        jobTitleId: title,
-        companyId: company,
-        locationId: location,
-        statusId: status,
-        jobSourceId: source,
-        salaryRange: salaryRange,
+        jobTitleId,
+        companyId,
+        locationId: location || null,
+        statusId,
+        jobSourceId: source || null,
+        salaryRange: salaryRange || null,
         createdAt: new Date(),
-        dueDate: dueDate,
         appliedDate: new Date(),
-        description: jobDescription,
-        jobType: type,
+        description: jobDescription?.trim() ?? "",
+        jobType,
         userId: ownerId,
         jobUrl,
         applied: true,
         resumeId: resume,
-        coverLetterId: coverLetter,
         ...(tagIds.length > 0
           ? { tags: { connect: tagIds.map((id) => ({ id })) } }
           : {}),
@@ -471,11 +525,9 @@ export const updateJob = async (
       status,
       source,
       salaryRange,
-      dueDate,
       jobDescription,
       jobUrl,
       resume,
-      coverLetter,
       tags,
     } = data;
 
@@ -487,19 +539,18 @@ export const updateJob = async (
         userId: ownerId,
       },
       data: {
-        jobTitleId: title,
-        companyId: company,
-        locationId: location,
-        statusId: status,
-        jobSourceId: source,
-        salaryRange: salaryRange,
-        createdAt: new Date(),
-        dueDate: dueDate,
-        description: jobDescription,
-        jobType: type,
+        ...(title ? { jobTitleId: title } : {}),
+        ...(company ? { companyId: company } : {}),
+        locationId: location || null,
+        ...(status ? { statusId: status } : {}),
+        jobSourceId: source || null,
+        salaryRange: salaryRange || null,
+        ...(jobDescription !== undefined
+          ? { description: jobDescription.trim() }
+          : {}),
+        ...(type ? { jobType: type } : {}),
         jobUrl,
         resumeId: resume,
-        coverLetterId: coverLetter,
         tags: { set: tagIds.map((id) => ({ id })) },
       },
     });

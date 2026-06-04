@@ -106,6 +106,20 @@ export function MeetingDetailsDialog({
               "—"
             )}
           </DetailItem>
+          <DetailItem label="Job Link">
+            {meeting.jobUrl ? (
+              <a
+                href={meeting.jobUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {meeting.jobUrl}
+              </a>
+            ) : (
+              "—"
+            )}
+          </DetailItem>
           <DetailItem label="Salary Expectation">
             {meeting.salaryExpectation || "—"}
           </DetailItem>

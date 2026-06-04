@@ -538,8 +538,9 @@ model Meeting {
   user                User     @relation("MeetingOwner", fields: [userId], references: [id])
   assignedDeveloperId String?
   assignedDeveloper   User?    @relation("MeetingAssignedDeveloper", fields: [assignedDeveloperId], references: [id], onDelete: SetNull)
-  jobId               String
-  job               Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId               String?
+  job               Job?     @relation(fields: [jobId], references: [id], onDelete: SetNull)
+  jobUrl              String?  @db.VarChar(2048)
   positionRole      String
   accountName       String   @default("")
   startTime         DateTime

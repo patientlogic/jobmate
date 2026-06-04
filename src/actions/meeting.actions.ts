@@ -33,7 +33,8 @@ function mapMeeting(meeting: {
   id: string;
   mid: number;
   userId: string;
-  jobId: string;
+  jobId: string | null;
+  jobUrl: string | null;
   assignedDeveloperId: string | null;
   positionRole: string;
   accountName: string;
@@ -53,7 +54,7 @@ function mapMeeting(meeting: {
   jobDescription: string | null;
   createdAt: Date;
   updatedAt: Date;
-  job?: { jid: number };
+  job?: { jid: number } | null;
   user?: { id: string; name: string };
   assignedDeveloper?: { id: string; name: string } | null;
 }): Meeting {
@@ -167,7 +168,8 @@ function formToMeetingData(
   assignedDeveloperId?: string | null,
 ) {
   return {
-    jobId: data.jobId,
+    jobId: data.jobId?.trim() || null,
+    jobUrl: data.jobUrl?.trim() || null,
     positionRole: data.positionRole.trim(),
     accountName: data.accountName?.trim() ?? "",
     startTime: data.startDateTime,
@@ -196,6 +198,7 @@ function buildMeetingSearchFilter(term: string) {
     { accountName: { contains: term } },
     { companyName: { contains: term } },
     { meetingLink: { contains: term } },
+    { jobUrl: { contains: term } },
     { address: { contains: term } },
     { salaryExpectation: { contains: term } },
     { jobDescription: { contains: term } },
@@ -535,6 +538,7 @@ export const getMeetingJobPrefill = async (
         ? buildResumeDownloadUrl(job.Resume.File.filePath)
         : "",
       jobDescription: job.description ?? "",
+      jobUrl: job.jobUrl ?? "",
     };
 
     return { success: true, data };
@@ -551,7 +555,9 @@ export const createMeeting = async (
     const validated = AddMeetingFormSchema.parse(data);
     const ownerId = await requireSubjectUserId(subjectUserId);
 
-    await resolveJobOwnerId(validated.jobId, subjectUserId);
+    if (validated.jobId) {
+      await resolveJobOwnerId(validated.jobId, subjectUserId);
+    }
 
     const meeting = await prisma.meeting.create({
       data: {
@@ -590,7 +596,9 @@ export const updateMeeting = async (
       throw new Error("Forbidden");
     }
 
-    await resolveJobOwnerId(validated.jobId, subjectUserId);
+    if (validated.jobId) {
+      await resolveJobOwnerId(validated.jobId, subjectUserId);
+    }
 
     const assignedDeveloperId =
       viewer.role === UserRole.ADMIN

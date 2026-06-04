@@ -56,6 +56,7 @@ export type MeetingJobPrefill = {
   salaryExpectation: string;
   resumeUrl: string;
   jobDescription: string;
+  jobUrl: string;
 };
 
 export type DeveloperOption = {
@@ -70,7 +71,8 @@ export type Meeting = {
   id: string;
   mid: number;
   userId: string;
-  jobId: string;
+  jobId: string | null;
+  jobUrl: string | null;
   assignedDeveloperId: string | null;
   positionRole: string;
   accountName: string;

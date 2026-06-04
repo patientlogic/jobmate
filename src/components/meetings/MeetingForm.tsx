@@ -94,6 +94,7 @@ export function MeetingForm({
     resolver: zodResolver(AddMeetingFormSchema),
     defaultValues: {
       jobId: "",
+      jobUrl: "",
       positionRole: "",
       accountName: "",
       startDateTime: defaultTimes.start,
@@ -192,6 +193,7 @@ export function MeetingForm({
       setValue("salaryExpectation", data.salaryExpectation, { shouldDirty: true });
       setValue("resumeUrl", data.resumeUrl, { shouldDirty: true });
       setValue("jobDescription", data.jobDescription, { shouldDirty: true });
+      setValue("jobUrl", data.jobUrl, { shouldDirty: true });
     })();
   }, [watchedJobId, dialogOpen, setValue, subjectUserId]);
 
@@ -199,7 +201,8 @@ export function MeetingForm({
     if (editMeeting) {
       reset({
         id: editMeeting.id,
-        jobId: editMeeting.jobId,
+        jobId: editMeeting.jobId ?? "",
+        jobUrl: editMeeting.jobUrl ?? "",
         positionRole: editMeeting.positionRole,
         accountName: editMeeting.accountName,
         startDateTime: new Date(editMeeting.startTime),
@@ -225,6 +228,7 @@ export function MeetingForm({
 
     reset({
       jobId: "",
+      jobUrl: "",
       positionRole: "",
       accountName: "",
       startDateTime: defaultTimes.start,
@@ -351,7 +355,12 @@ export function MeetingForm({
               name="jobId"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Applied Job</FormLabel>
+                  <FormLabel>
+                    Applied Job{" "}
+                    <span className="font-normal text-muted-foreground">
+                      (optional)
+                    </span>
+                  </FormLabel>
                   <Combobox
                     options={appliedJobs.map((job) => ({
                       id: job.id,
@@ -362,6 +371,23 @@ export function MeetingForm({
                     searchPlaceholder="Search applied jobs..."
                     triggerClassName="w-full md:w-full lg:w-full"
                   />
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="jobUrl"
+              render={({ field }) => (
+                <FormItem className="md:col-span-2">
+                  <FormLabel>Job Link</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      placeholder="https://example.com/jobs/123"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

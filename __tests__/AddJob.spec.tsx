@@ -1,17 +1,29 @@
 import { AddJob } from "@/components/myjobs/AddJob";
 import { JOB_SOURCES } from "@/lib/data/jobSourcesData";
 import { JOB_STATUSES } from "@/lib/data/jobStatusesData";
-import { getMockJobDetails, getMockList } from "@/lib/mock.utils";
+import { getMockList } from "@/lib/mock.utils";
 import { screen, render, waitFor } from "@testing-library/react";
 import { getCurrentUser } from "@/utils/user.utils";
 import userEvent from "@testing-library/user-event";
 import { addJob } from "@/actions/job.actions";
+
+vi.mock("@/actions/profile.actions", () => ({
+  getResumeList: vi.fn().mockResolvedValue({
+    data: [{ id: "resume-1", title: "Default Resume" }],
+    success: true,
+    total: 1,
+  }),
+}));
+
+vi.mock("@/actions/company.actions", () => ({
+  getAllCompanies: vi.fn().mockResolvedValue([]),
+}));
 vi.mock("@/utils/user.utils", () => ({
   getCurrentUser: vi.fn(),
 }));
 
 vi.mock("@/actions/job.actions", () => ({
-  addJob: vi.fn().mockResolvedValue({ success: true }),
+  addJob: vi.fn().mockResolvedValue({ success: true, job: { id: "job-1" } }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -51,10 +63,18 @@ describe("AddJob Component", () => {
   const mockUser = { id: "user-id" };
   const mockJobStatuses = JOB_STATUSES;
   const mockJobSources = JOB_SOURCES;
+  const mockTags = [
+    { id: "tag-1", label: "React", value: "react", createdBy: "user-id" },
+  ];
   const mockResetEditJob = vi.fn();
   const user = userEvent.setup({ skipHover: true });
   window.HTMLElement.prototype.scrollIntoView = vi.fn(); // Fixes the issue with combobox
   window.HTMLElement.prototype.hasPointerCapture = vi.fn();
+
+  async function expandAdvancedDetails() {
+    const trigger = screen.getByTestId("advanced-job-details-trigger");
+    await user.click(trigger);
+  }
 
   beforeEach(async () => {
     const mockCompanies = (await getMockList(1, 10, "companies")).data;
@@ -68,7 +88,7 @@ describe("AddJob Component", () => {
         jobTitles={mockJobTitles}
         locations={mockLocations}
         jobSources={mockJobSources}
-        tags={[]}
+        tags={mockTags}
         editJob={null}
         resetEditJob={mockResetEditJob}
       />,
@@ -87,8 +107,8 @@ describe("AddJob Component", () => {
   it("should not show applied switch or date applied when adding a job", async () => {
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Date Applied")).not.toBeInTheDocument();
-    const status = screen.getByLabelText("Status");
-    expect(status).toHaveTextContent("Applied");
+    expect(screen.queryByLabelText("Due Date")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Cover Letter")).not.toBeInTheDocument();
   });
   it("should open the dialog when clicked on add job button with title 'Edit Job'", async () => {
     // TODO: To be tested with job container and jobs table component
@@ -96,13 +116,8 @@ describe("AddJob Component", () => {
   it("should show relevant react-hook-form errors", async () => {
     const saveBtn = screen.getByTestId("save-job-btn");
     await user.click(saveBtn);
-    expect(screen.getByText("Job title is required.")).toBeInTheDocument();
-    expect(screen.getByText("Company name is required.")).toBeInTheDocument();
-    expect(screen.getByText("Location is required.")).toBeInTheDocument();
-    expect(screen.getByText("Source is required.")).toBeInTheDocument();
-    expect(
-      screen.getByText("Job description is required."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Job URL is required.")).toBeInTheDocument();
+    expect(screen.getByText("Resume is required.")).toBeInTheDocument();
   });
   it("should close the dialog when clicked on cancel button", async () => {
     const cancelBtn = screen.getByRole("button", { name: /cancel/i });
@@ -111,6 +126,7 @@ describe("AddJob Component", () => {
     expect(dialog).not.toBeInTheDocument();
   });
   it("should load and show the job title combobox list", async () => {
+    await expandAdvancedDetails();
     const jobTitleCombobox = screen.getByLabelText("Job Title");
     await user.click(jobTitleCombobox);
     const options = screen.getAllByRole("option");
@@ -118,6 +134,7 @@ describe("AddJob Component", () => {
     expect(options[0].textContent).toBe("Frontend Developer");
   });
   it("should load and show the company combobox list", async () => {
+    await expandAdvancedDetails();
     const companyCombobox = screen.getByLabelText("Company");
     await user.click(companyCombobox);
     const options = screen.getAllByRole("option");
@@ -125,6 +142,7 @@ describe("AddJob Component", () => {
     expect(options[0].textContent).toBe("Google");
   });
   it("should load and show the location combobox list", async () => {
+    await expandAdvancedDetails();
     const locationCombobox = screen.getByLabelText("Job Location");
     await user.click(locationCombobox);
     const options = screen.getAllByRole("option");
@@ -132,6 +150,7 @@ describe("AddJob Component", () => {
     expect(options[0].textContent).toBe("San Francisco");
   });
   it("should load and show the job source combobox list", async () => {
+    await expandAdvancedDetails();
     const sourceCombobox = screen.getByLabelText("Job Source");
     await user.click(sourceCombobox);
     const options = screen.getAllByRole("option");
@@ -139,6 +158,7 @@ describe("AddJob Component", () => {
     expect(options[0].textContent).toBe("Indeed");
   });
   it("should load and show the salary range select list", async () => {
+    await expandAdvancedDetails();
     const salaryRangeSelect = screen.getByLabelText("Salary Range");
     await user.click(salaryRangeSelect);
     const options = screen.getAllByRole("option");
@@ -146,6 +166,7 @@ describe("AddJob Component", () => {
     expect(options[0].textContent).toBe("0 - 10,000");
   });
   it("should load and show the status select list", async () => {
+    await expandAdvancedDetails();
     const statusSelect = screen.getByLabelText("Status");
     await user.click(statusSelect);
     const options = screen.getAllByRole("option");
@@ -153,45 +174,14 @@ describe("AddJob Component", () => {
     expect(options[0].textContent).toBe("Draft");
   });
   it("should closes the dialog and submit to save job when clicked on save button", async () => {
-    const jobTitleInput = screen.getByRole("combobox", {
-      name: /job title/i,
-    }) as HTMLSelectElement;
-    await user.click(jobTitleInput);
-    const selectedJobTitle = screen.getByRole("option", {
-      name: "Full Stack Developer",
-    });
-    await user.click(selectedJobTitle);
+    const jobUrlInput = screen.getByPlaceholderText(
+      "Copy and paste job link here",
+    );
+    await user.type(jobUrlInput, "https://example.com/jobs/123");
 
-    const companyInput = screen.getByRole("combobox", { name: /company/i });
-    await user.click(companyInput);
-    const selectedCompany = screen.getByRole("option", {
-      name: "Amazon",
-    });
-    await user.click(selectedCompany);
-
-    const locationInput = screen.getByRole("combobox", {
-      name: /job location/i,
-    });
-    await user.click(locationInput);
-    const selectedLocation = screen.getByRole("option", {
-      name: "Remote",
-    });
-    await user.click(selectedLocation);
-
-    const sourceInput = screen.getByRole("combobox", {
-      name: /job source/i,
-    });
-    await user.click(sourceInput);
-    const selectedSource = screen.getByRole("option", {
-      name: "Indeed",
-    });
-    await user.click(selectedSource);
-
-    const editableDiv = screen.getByLabelText("Job Description");
-    const pTag = editableDiv.querySelector("div > p");
-    if (pTag) {
-      pTag.textContent = "New Job Description";
-    }
+    const resumeSelect = screen.getByLabelText("Resume");
+    await user.click(resumeSelect);
+    await user.click(screen.getByRole("option", { name: "Default Resume" }));
 
     const dialog = await screen.findByRole("dialog");
     const saveBtn = screen.getByTestId("save-job-btn");
@@ -200,20 +190,17 @@ describe("AddJob Component", () => {
     await waitFor(() => {
       expect(addJob).toHaveBeenCalledTimes(1);
       expect(dialog).not.toBeInTheDocument();
-      expect(addJob).toHaveBeenCalledWith({
-        title: "1xx",
-        company: "2zz",
-        location: "1yy",
-        type: "FT",
-        source: "1359dac4-a397-4461-b747-382706dcbe79",
-        status: "5e7c6e8c-83e6-46e3-bf01-db8f0b503399",
-        dueDate: expect.any(Date),
-        salaryRange: "1",
-        jobDescription: "<p>New Job Description</p>",
-        jobUrl: undefined,
-        applied: true,
-        tags: [],
-      });
+      expect(addJob).toHaveBeenCalledWith(
+        expect.objectContaining({
+          jobUrl: "https://example.com/jobs/123",
+          resume: "resume-1",
+          type: "FT",
+          status: "5e7c6e8c-83e6-46e3-bf01-db8f0b503399",
+          applied: true,
+          tags: [],
+        }),
+        undefined,
+      );
     });
   });
 });
