@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  deleteUserById,
+  getAdminViewerId,
   listJobBidders,
   setUserActivated,
   type JobBidderSummary,
@@ -22,18 +24,31 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Loading from "../Loading";
 import { Switch } from "../ui/switch";
 import { toast } from "../ui/use-toast";
+import { Button } from "../ui/button";
+import { Trash } from "lucide-react";
+import { DeleteAlertDialog } from "../DeleteAlertDialog";
 
 function UsersContainer() {
   const [bidders, setBidders] = useState<JobBidderSummary[]>([]);
+  const [viewerId, setViewerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<JobBidderSummary | null>(
+    null,
+  );
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await listJobBidders();
+      const [data, adminViewerId] = await Promise.all([
+        listJobBidders(),
+        getAdminViewerId(),
+      ]);
       setBidders(data);
+      setViewerId(adminViewerId);
     } catch {
       setError("Failed to load users.");
       setBidders([]);
@@ -70,6 +85,39 @@ function UsersContainer() {
     });
   };
 
+  const openDeleteDialog = (user: JobBidderSummary) => {
+    setUserToDelete(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const onDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    setIsDeleting(true);
+    const result = await deleteUserById(userToDelete.id);
+    setIsDeleting(false);
+
+    if (result.success) {
+      setBidders((prev) => prev.filter((user) => user.id !== userToDelete.id));
+      toast({
+        variant: "success",
+        description: `${userToDelete.name} has been deleted.`,
+      });
+      setDeleteDialogOpen(false);
+      setUserToDelete(null);
+      return;
+    }
+
+    toast({
+      variant: "destructive",
+      title: "Error!",
+      description: result.message ?? "Failed to delete user.",
+    });
+  };
+
+  const canDeleteUser = (user: JobBidderSummary) =>
+    user.role !== UserRole.ADMIN && user.id !== viewerId;
+
   return (
     <div className="col-span-3">
       <Card>
@@ -97,6 +145,9 @@ function UsersContainer() {
                     <TableHead className="text-right">Applied jobs</TableHead>
                     <TableHead className="text-right">All tracked jobs</TableHead>
                     <TableHead>Joined</TableHead>
+                    <TableHead className="w-[70px]">
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -150,6 +201,23 @@ function UsersContainer() {
                       <TableCell className="text-muted-foreground">
                         {format(u.createdAt, "PP")}
                       </TableCell>
+                      <TableCell>
+                        {canDeleteUser(u) ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            aria-label={`Delete ${u.name}`}
+                            disabled={isDeleting}
+                            onClick={() => openDeleteDialog(u)}
+                          >
+                            <Trash className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -161,6 +229,28 @@ function UsersContainer() {
           ) : null}
         </CardContent>
       </Card>
+
+      <DeleteAlertDialog
+        pageTitle="user"
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setUserToDelete(null);
+          }
+        }}
+        alertTitle={
+          userToDelete
+            ? `Delete ${userToDelete.name}?`
+            : "Delete this user?"
+        }
+        alertDescription={
+          userToDelete
+            ? `This will permanently delete ${userToDelete.name} (${userToDelete.email}) and all of their jobs, meetings, profile data, and related records. This action cannot be undone.`
+            : "This action cannot be undone."
+        }
+        onDelete={onDeleteUser}
+      />
     </div>
   );
 }

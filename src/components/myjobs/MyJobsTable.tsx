@@ -109,9 +109,13 @@ function MyJobsTable({
             <TableHead className="hidden w-[100px] sm:table-cell">
               <span className="sr-only">Company Logo</span>
             </TableHead>
-            <TableHead className="hidden md:table-cell">Date Applied</TableHead>
+            <TableHead className="hidden md:table-cell w-[150px] min-w-[150px]">
+              Date Applied
+            </TableHead>
             {showJobSeeker ? (
-              <TableHead className="hidden lg:table-cell">Job Seeker</TableHead>
+              <TableHead className="hidden lg:table-cell w-[150px] min-w-[150px]">
+                Job Seeker
+              </TableHead>
             ) : null}
             <TableHead>Title</TableHead>
             <TableHead>Company</TableHead>
@@ -139,11 +143,11 @@ function MyJobsTable({
                     src={job.Company?.logoUrl || "/logo.png"}
                   />
                 </TableCell>
-                <TableCell className="hidden md:table-cell w-[120px]">
+                <TableCell className="hidden md:table-cell w-[150px] max-w-[150px]">
                   {job.appliedDate ? format(job.appliedDate, "PP") : "N/A"}
                 </TableCell>
                 {showJobSeeker ? (
-                  <TableCell className="hidden lg:table-cell">
+                  <TableCell className="hidden lg:table-cell w-[150px] max-w-[150px] truncate">
                     {job.User?.name ?? "—"}
                   </TableCell>
                 ) : null}
