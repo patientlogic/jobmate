@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { SidebarProvider, useSidebar } from "@/context/SidebarContext";
+import { JobBidsLeaderboardProvider } from "@/context/JobBidsLeaderboardContext";
 import Sidebar from "@/components/Sidebar";
 
 type DashboardShellProps = {
@@ -21,15 +22,17 @@ export default function DashboardShell({
 }: DashboardShellProps) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full flex-col bg-muted/40">
-        <Sidebar
-          isAdmin={isAdmin}
-          canAccessDeveloper={canAccessDeveloper}
-          canAccessAssignedMeetings={canAccessAssignedMeetings}
-          canAccessMyMeetings={canAccessMyMeetings}
-        />
-        <DashboardMain>{children}</DashboardMain>
-      </div>
+      <JobBidsLeaderboardProvider>
+        <div className="flex min-h-screen w-full flex-col bg-muted/40">
+          <Sidebar
+            isAdmin={isAdmin}
+            canAccessDeveloper={canAccessDeveloper}
+            canAccessAssignedMeetings={canAccessAssignedMeetings}
+            canAccessMyMeetings={canAccessMyMeetings}
+          />
+          <DashboardMain>{children}</DashboardMain>
+        </div>
+      </JobBidsLeaderboardProvider>
     </SidebarProvider>
   );
 }

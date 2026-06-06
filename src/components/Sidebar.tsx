@@ -10,6 +10,8 @@ import { useSidebar } from "@/context/SidebarContext";
 import { APP_NAME } from "@config/app-name";
 import { cn } from "@/lib/utils";
 import { Button } from "./ui/button";
+import { TopBidderSidebarCup } from "./TopBidderSidebarCup";
+import { JobBidCatchUpEncouragement } from "./JobBidCatchUpEncouragement";
 
 function Sidebar({
   isAdmin = false,
@@ -58,19 +60,7 @@ function Sidebar({
         collapsed ? "w-16" : "w-56",
       )}
     >
-      {/* <div
-        className={cn(
-          "flex shrink-0 items-center border-b px-3 py-4",
-          collapsed ? "justify-center" : "gap-2.5",
-        )}
-      >
-        <AppLogo size="sm" showTile={false} priority />
-        {!collapsed && (
-          <span className="truncate text-sm font-semibold">{APP_NAME}</span>
-        )}
-      </div> */}
-
-      <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-3">
+      <nav className="relative z-10 flex flex-1 flex-col gap-1 overflow-y-auto px-2 py-3">
         <TooltipProvider delayDuration={400}>
           {navItems.map((item) => (
             <NavLink
@@ -85,7 +75,12 @@ function Sidebar({
         </TooltipProvider>
       </nav>
 
-      <nav className="flex shrink-0 flex-col gap-1 border-t px-2 py-3">
+      <div className="pointer-events-none absolute inset-x-0 bottom-[100px] z-0 flex justify-center">
+        <TopBidderSidebarCup collapsed={collapsed} />
+        <JobBidCatchUpEncouragement collapsed={collapsed} />
+      </div>
+
+      <nav className="relative z-10 flex shrink-0 flex-col gap-1 border-t px-2 py-3">
         <TooltipProvider delayDuration={400}>
           <NavLink
             label="Settings"

@@ -43,6 +43,10 @@ export function canAccessDeveloperOptions(
   return isAdminRole(role) || isDeveloperRole(role);
 }
 
+export function isRegularJobBidderRole(role: UserRole): boolean {
+  return role === UserRole.USER;
+}
+
 export function formatUserRoleLabel(role: UserRole): string {
   switch (role) {
     case UserRole.ADMIN:

@@ -22,6 +22,7 @@ import {
 import { ProfileDropdown } from "./ProfileDropdown";
 import { AppLogo } from "./AppLogo";
 import { APP_NAME } from "@config/app-name";
+import { TodayJobBidsContest } from "./TodayJobBidsContest";
 
 async function Header() {
   const [user, session] = await Promise.all([getCurrentUser(), auth()]);
@@ -93,14 +94,8 @@ async function Header() {
         <AppLogo size="sm" />
         <h1 className="font-semibold">{APP_NAME} - Job Search Assistant</h1>
       </div>
-      <div className="relative ml-auto flex-1 md:grow-0">
-        {/* <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          id="search"
-          type="search"
-          placeholder="Search..."
-          className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-        /> */}
+      <div className="relative ml-auto flex flex-1 items-center justify-end gap-3 md:grow-0">
+        <TodayJobBidsContest />
       </div>
 
       <ProfileDropdown
