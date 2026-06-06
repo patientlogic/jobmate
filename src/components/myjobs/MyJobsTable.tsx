@@ -34,11 +34,11 @@ import {
 import { Button } from "../ui/button";
 import { useState } from "react";
 import { JobResponse, JobStatus } from "@/models/job.model";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { DeleteAlertDialog } from "../DeleteAlertDialog";
-import { buildMyJobDetailPath } from "./JobsSubjectContext";
 import { isAllUsersScope } from "@/lib/admin-scope.constants";
+import { getJobDetails } from "@/actions/job.actions";
+import { JobDetailsDialog } from "./JobDetailsDialog";
+import { toast } from "../ui/use-toast";
 
 type MyJobsTableProps = {
   jobs: JobResponse[];
@@ -63,14 +63,36 @@ function MyJobsTable({
 }: MyJobsTableProps) {
   const [alertOpen, setAlertOpen] = useState(false);
   const [jobIdToDelete, setJobIdToDelete] = useState("");
-
-  const router = useRouter();
+  const [selectedJob, setSelectedJob] = useState<JobResponse | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   const detailSubjectUserId = (job: JobResponse) =>
     isAllUsersScope(subjectUserId) ? job.User?.id : subjectUserId;
 
-  const viewJobDetails = (jobId: string, job: JobResponse) => {
-    router.push(buildMyJobDetailPath(jobId, detailSubjectUserId(job)));
+  const openJobDetails = async (job: JobResponse) => {
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    setSelectedJob(null);
+
+    const { job: fullJob, success, message } = await getJobDetails(
+      job.id,
+      detailSubjectUserId(job),
+    );
+
+    setDetailsLoading(false);
+
+    if (!success || !fullJob) {
+      setDetailsOpen(false);
+      toast({
+        variant: "destructive",
+        title: "Error!",
+        description: message ?? "Failed to load job details.",
+      });
+      return;
+    }
+
+    setSelectedJob(fullJob);
   };
 
   const onDeleteJob = (jobId: string) => {
@@ -129,12 +151,13 @@ function MyJobsTable({
                   className="font-medium cursor-pointer max-w-[120px] sm:max-w-none"
                 >
                   <div className="flex items-center gap-1.5">
-                    <Link
-                      href={buildMyJobDetailPath(job.id, detailSubjectUserId(job))}
-                      className="block truncate"
+                    <button
+                      type="button"
+                      className="block truncate text-left font-medium text-primary underline-offset-4 hover:underline"
+                      onClick={() => openJobDetails(job)}
                     >
                       {job.JobTitle?.label}
-                    </Link>
+                    </button>
                     {(job._count?.Notes ?? 0) > 0 && (
                       <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5 shrink-0">
                         <StickyNote className="h-3 w-3 mr-0.5" />
@@ -188,7 +211,7 @@ function MyJobsTable({
                       <DropdownMenuGroup>
                         <DropdownMenuItem
                           className="cursor-pointer"
-                          onClick={() => viewJobDetails(job?.id, job)}
+                          onClick={() => openJobDetails(job)}
                         >
                           <ListCollapse className="mr-2 h-4 w-4" />
                           View Details
@@ -265,6 +288,13 @@ function MyJobsTable({
           })}
         </TableBody>
       </Table>
+      <JobDetailsDialog
+        job={selectedJob}
+        open={detailsOpen}
+        loading={detailsLoading}
+        onOpenChange={setDetailsOpen}
+        onEdit={editJob}
+      />
       <DeleteAlertDialog
         pageTitle="job"
         open={alertOpen}
