@@ -216,9 +216,20 @@ export const getActivityDataForPeriod = async (
   }
 };
 
+export type WeeklyJobsBidderCount = {
+  name: string;
+  count: number;
+};
+
+export type WeeklyJobsDayPoint = {
+  day: string;
+  value: number;
+  bidders: WeeklyJobsBidderCount[];
+};
+
 export const getJobsActivityForPeriod = async (
   subjectUserId?: string,
-): Promise<any | undefined> => {
+): Promise<WeeklyJobsDayPoint[]> => {
   try {
     const { isAllUsers, userId } = await resolveDashboardScope(subjectUserId);
     const now = new Date();
@@ -241,11 +252,7 @@ export const getJobsActivityForPeriod = async (
       0,
       0,
     );
-    const jobData = await prisma.job.groupBy({
-      by: "appliedDate",
-      _count: {
-        _all: true,
-      },
+    const jobs = await prisma.job.findMany({
       where: {
         ...userWhere(isAllUsers, userId),
         applied: true,
@@ -254,24 +261,35 @@ export const getJobsActivityForPeriod = async (
           lte: today,
         },
       },
-      orderBy: {
-        appliedDate: "asc",
+      select: {
+        appliedDate: true,
+        User: { select: { name: true } },
       },
     });
-    // Reduce to a format that groups by unique date (YYYY-MM-DD) using local time
-    const groupedPosts = jobData.reduce((acc: any, post: any) => {
-      if (!post.appliedDate) return acc;
-      const date = format(new Date(post.appliedDate), "yyyy-MM-dd");
-      acc[date] = (acc[date] || 0) + post._count._all;
-      return acc;
-    }, {});
-    // Get the last 7 days in local time
+
+    const groupedByDay: Record<string, Record<string, number>> = {};
+    for (const job of jobs) {
+      if (!job.appliedDate) continue;
+      const date = format(new Date(job.appliedDate), "yyyy-MM-dd");
+      const bidderName = job.User.name;
+      groupedByDay[date] ??= {};
+      groupedByDay[date][bidderName] =
+        (groupedByDay[date][bidderName] ?? 0) + 1;
+    }
+
     const last7Days = getLast7Days("yyyy-MM-dd");
-    // Map to ensure all dates are represented with a count of 0 if necessary
-    const result = last7Days.map((dateStr) => ({
-      day: format(parseISO(dateStr), "EEE, MMM d"),
-      value: groupedPosts[dateStr] || 0,
-    }));
+    const result = last7Days.map((dateStr) => {
+      const countsByBidder = groupedByDay[dateStr] ?? {};
+      const bidders = Object.entries(countsByBidder)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+      return {
+        day: format(parseISO(dateStr), "EEE, MMM d"),
+        value: bidders.reduce((sum, bidder) => sum + bidder.count, 0),
+        bidders,
+      };
+    });
 
     return result;
   } catch (error) {

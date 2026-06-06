@@ -5,9 +5,16 @@ import { ResponsiveBar } from "@nivo/bar";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { cn } from "@/lib/utils";
 
+type ChartDataPoint = {
+  day: string;
+  value?: number;
+  bidders?: { name: string; count: number }[];
+  [key: string]: string | number | { name: string; count: number }[] | undefined;
+};
+
 type ChartConfig = {
   label: string;
-  data: any[];
+  data: ChartDataPoint[];
   keys: string[];
   groupMode?: "grouped" | "stacked";
   axisLeftLegend: string;
@@ -158,44 +165,97 @@ export default function WeeklyBarChartToggle({
               tickValues: intTickValues,
             }}
             motionConfig="gentle"
-            tooltip={({ id, value, indexValue, color }) => (
-              <div
-                style={{
-                  background: "#1e293b",
-                  color: "#fff",
-                  padding: "6px 10px",
-                  borderRadius: 4,
-                  fontSize: 13,
-                  whiteSpace: "nowrap",
-                }}
-              >
-                <span
+            tooltip={({ id, value, indexValue, color, data }) => {
+              const point = data as ChartDataPoint;
+              const isWeeklyJobs =
+                current.label === "Jobs" && Array.isArray(point.bidders);
+
+              if (isWeeklyJobs) {
+                return (
+                  <div
+                    style={{
+                      background: "#1e293b",
+                      color: "#fff",
+                      padding: "8px 12px",
+                      borderRadius: 4,
+                      fontSize: 13,
+                      minWidth: 160,
+                      maxWidth: 280,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 6 }}>
+                      {indexValue}:{" "}
+                      <strong>{Number(value).toFixed(0)}</strong> applied
+                    </div>
+                    {point.bidders!.length > 0 ? (
+                      <ul
+                        style={{
+                          margin: 0,
+                          padding: 0,
+                          listStyle: "none",
+                        }}
+                      >
+                        {point.bidders!.map((bidder) => (
+                          <li
+                            key={bidder.name}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              padding: "2px 0",
+                            }}
+                          >
+                            <span style={{ opacity: 0.9 }}>{bidder.name}</span>
+                            <strong>{bidder.count}</strong>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div style={{ opacity: 0.75 }}>No applications</div>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div
                   style={{
-                    display: "inline-block",
-                    width: 10,
-                    height: 10,
-                    background: color,
-                    borderRadius: 2,
-                    marginRight: 6,
+                    background: "#1e293b",
+                    color: "#fff",
+                    padding: "6px 10px",
+                    borderRadius: 4,
+                    fontSize: 13,
+                    whiteSpace: "nowrap",
                   }}
-                />
-                {current.tooltipLabel
-                  ? current.tooltipLabel(String(id))
-                  : String(id) === "value"
-                    ? current.axisLeftLegend
-                        .toLowerCase()
-                        .replace(/\(.*\)/, "")
-                        .trim()
-                        .replace(/\b\w/g, (c) => c.toUpperCase())
-                    : String(id)}{" "}
-                – {indexValue}:{" "}
-                <strong>
-                  {current.label === "Activities"
-                    ? Number(value).toFixed(1)
-                    : value}
-                </strong>
-              </div>
-            )}
+                >
+                  <span
+                    style={{
+                      display: "inline-block",
+                      width: 10,
+                      height: 10,
+                      background: color,
+                      borderRadius: 2,
+                      marginRight: 6,
+                    }}
+                  />
+                  {current.tooltipLabel
+                    ? current.tooltipLabel(String(id))
+                    : String(id) === "value"
+                      ? current.axisLeftLegend
+                          .toLowerCase()
+                          .replace(/\(.*\)/, "")
+                          .trim()
+                          .replace(/\b\w/g, (c) => c.toUpperCase())
+                      : String(id)}{" "}
+                  – {indexValue}:{" "}
+                  <strong>
+                    {current.label === "Activities"
+                      ? Number(value).toFixed(1)
+                      : value}
+                  </strong>
+                </div>
+              );
+            }}
           />
         </div>
       </CardContent>

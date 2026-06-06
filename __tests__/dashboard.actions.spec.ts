@@ -241,17 +241,21 @@ describe("Dashboard Actions", () => {
 
   describe("getJobsActivityForPeriod", () => {
     it("should return jobs activity data for authenticated user", async () => {
-      const mockJobData = [
+      const mockJobs = [
         {
           appliedDate: new Date("2024-01-01"),
-          _count: { _all: 3 },
+          User: { name: "Alice" },
+        },
+        {
+          appliedDate: new Date("2024-01-01"),
+          User: { name: "Alice" },
         },
         {
           appliedDate: new Date("2024-01-02"),
-          _count: { _all: 5 },
+          User: { name: "Bob" },
         },
       ];
-      (prisma.job.groupBy as any).mockResolvedValue(mockJobData);
+      (prisma.job.findMany as any).mockResolvedValue(mockJobs);
 
       const result = await getJobsActivityForPeriod();
 
@@ -260,7 +264,9 @@ describe("Dashboard Actions", () => {
       result.forEach((item: any) => {
         expect(item).toHaveProperty("day");
         expect(item).toHaveProperty("value");
+        expect(item).toHaveProperty("bidders");
         expect(typeof item.value).toBe("number");
+        expect(Array.isArray(item.bidders)).toBe(true);
       });
     });
 
@@ -273,7 +279,7 @@ describe("Dashboard Actions", () => {
     });
 
     it("should handle database errors", async () => {
-      (prisma.job.groupBy as any).mockRejectedValue(
+      (prisma.job.findMany as any).mockRejectedValue(
         new Error("Database error"),
       );
 
@@ -283,13 +289,14 @@ describe("Dashboard Actions", () => {
     });
 
     it("should return zero values for days with no jobs", async () => {
-      (prisma.job.groupBy as any).mockResolvedValue([]);
+      (prisma.job.findMany as any).mockResolvedValue([]);
 
       const result = await getJobsActivityForPeriod();
 
       expect(result.length).toBe(7);
       result.forEach((item: any) => {
         expect(item.value).toBe(0);
+        expect(item.bidders).toEqual([]);
       });
     });
   });
