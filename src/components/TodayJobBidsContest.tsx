@@ -10,6 +10,35 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+function getInitials(name: string) {
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "U"
+  );
+}
+
+function LeaderboardAvatar({
+  name,
+  avatarUrl,
+}: {
+  name: string;
+  avatarUrl: string | null;
+}) {
+  return (
+    <Avatar className="h-8 w-8 shrink-0">
+      {avatarUrl ? <AvatarImage src={avatarUrl} alt={name} /> : null}
+      <AvatarFallback className="text-xs font-semibold">
+        {getInitials(name)}
+      </AvatarFallback>
+    </Avatar>
+  );
+}
 
 function displayBidderName(
   bidder: TodayJobBidsLeaderboard["topBidders"][number],
@@ -132,13 +161,19 @@ export function TodayJobBidsContest() {
                   key={leader.userId}
                   className={cn(
                     "flex items-center gap-3 py-0.5",
-                    stats.isAdminView && "justify-between gap-6",
+                    stats.isAdminView && "justify-between gap-4",
                   )}
                 >
-                  <span className="truncate">
-                    {index === 0 ? "👑 " : `${index + 1}. `}
-                    {displayBidderName(leader)}
-                  </span>
+                  <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                    <LeaderboardAvatar
+                      name={leader.name}
+                      avatarUrl={leader.avatarUrl}
+                    />
+                    <span className="truncate">
+                      {index === 0 ? "👑 " : `${index + 1}. `}
+                      {displayBidderName(leader)}
+                    </span>
+                  </div>
                   {stats.isAdminView ? (
                     <span className="shrink-0 text-lg font-semibold tabular-nums">
                       {leader.count}

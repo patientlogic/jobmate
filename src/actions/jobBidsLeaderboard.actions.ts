@@ -11,6 +11,7 @@ export type JobBidderScore = {
   name: string;
   isViewer: boolean;
   count?: number;
+  avatarUrl: string | null;
 };
 
 export type TodayJobBidsLeaderboard = {
@@ -60,17 +61,46 @@ function withViewerFlag<T extends { userId: string }>(
 }
 
 function sanitizeBidderScores(
-  entries: Array<{ userId: string; name: string; count: number; isViewer: boolean }>,
+  entries: Array<{
+    userId: string;
+    name: string;
+    count: number;
+    isViewer: boolean;
+    avatarUrl: string | null;
+  }>,
   isAdminView: boolean,
 ): JobBidderScore[] {
   if (isAdminView) {
     return entries;
   }
 
-  return entries.map(({ userId, name, isViewer }) => ({
+  return entries.map(({ userId, name, isViewer, avatarUrl }) => ({
     userId,
     name,
     isViewer,
+    avatarUrl,
+  }));
+}
+
+async function attachAvatars<T extends { userId: string }>(
+  entries: T[],
+): Promise<(T & { avatarUrl: string | null })[]> {
+  if (entries.length === 0) {
+    return [];
+  }
+
+  const userIds = [...new Set(entries.map((entry) => entry.userId))];
+  const profiles = await prisma.userProfile.findMany({
+    where: { userId: { in: userIds } },
+    select: { userId: true, avatarUrl: true },
+  });
+  const avatarMap = new Map(
+    profiles.map((profile) => [profile.userId, profile.avatarUrl]),
+  );
+
+  return entries.map((entry) => ({
+    ...entry,
+    avatarUrl: avatarMap.get(entry.userId) ?? null,
   }));
 }
 
@@ -129,7 +159,11 @@ export async function getTodayJobBidsLeaderboard(): Promise<TodayJobBidsLeaderbo
 
   const leadersWithViewer = withViewerFlag(leaders.slice(0, 8), viewerId);
   const topBiddersWithViewer = withViewerFlag(topBiddersRaw, viewerId);
-  const topBidders = sanitizeBidderScores(topBiddersWithViewer, isAdminView);
+  const [leadersWithAvatars, topBiddersWithAvatars] = await Promise.all([
+    attachAvatars(leadersWithViewer),
+    attachAvatars(topBiddersWithViewer),
+  ]);
+  const topBidders = sanitizeBidderScores(topBiddersWithAvatars, isAdminView);
   const isViewerTopBidder = topBidders.some((bidder) => bidder.isViewer);
   const showBidEncouragement =
     isRegularJobBidderRole(viewer.role) && !isViewerTopBidder;
@@ -137,7 +171,7 @@ export async function getTodayJobBidsLeaderboard(): Promise<TodayJobBidsLeaderbo
   return {
     totalBids,
     topBidders,
-    leaders: sanitizeBidderScores(leadersWithViewer, isAdminView),
+    leaders: sanitizeBidderScores(leadersWithAvatars, isAdminView),
     isAdminView,
     viewerRole: viewer.role,
     showBidEncouragement,
