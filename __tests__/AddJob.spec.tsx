@@ -117,6 +117,7 @@ describe("AddJob Component", () => {
     const saveBtn = screen.getByTestId("save-job-btn");
     await user.click(saveBtn);
     expect(screen.getByText("Job URL is required.")).toBeInTheDocument();
+    expect(screen.getByText("Job title is required.")).toBeInTheDocument();
     expect(screen.getByText("Resume is required.")).toBeInTheDocument();
   });
   it("should close the dialog when clicked on cancel button", async () => {
@@ -126,7 +127,6 @@ describe("AddJob Component", () => {
     expect(dialog).not.toBeInTheDocument();
   });
   it("should load and show the job title combobox list", async () => {
-    await expandAdvancedDetails();
     const jobTitleCombobox = screen.getByLabelText("Job Title");
     await user.click(jobTitleCombobox);
     const options = screen.getAllByRole("option");
@@ -179,6 +179,14 @@ describe("AddJob Component", () => {
     );
     await user.type(jobUrlInput, "https://example.com/jobs/123");
 
+    const jobTitleInput = screen.getByRole("combobox", {
+      name: /job title/i,
+    });
+    await user.click(jobTitleInput);
+    await user.click(
+      screen.getByRole("option", { name: "Full Stack Developer" }),
+    );
+
     const resumeSelect = screen.getByLabelText("Resume");
     await user.click(resumeSelect);
     await user.click(screen.getByRole("option", { name: "Default Resume" }));
@@ -193,6 +201,7 @@ describe("AddJob Component", () => {
       expect(addJob).toHaveBeenCalledWith(
         expect.objectContaining({
           jobUrl: "https://example.com/jobs/123",
+          title: "1xx",
           resume: "resume-1",
           type: "FT",
           status: "5e7c6e8c-83e6-46e3-bf01-db8f0b503399",

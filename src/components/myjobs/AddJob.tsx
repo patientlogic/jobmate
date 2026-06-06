@@ -60,6 +60,9 @@ function getAppliedStatusId(statuses: JobStatus[]) {
 
 function getNewJobFormValues(jobStatuses: JobStatus[]) {
   return {
+    title: "",
+    jobUrl: "",
+    resume: "",
     type: Object.keys(JOB_TYPES)[0],
     status: getAppliedStatusId(jobStatuses),
     applied: true,
@@ -176,8 +179,8 @@ export function AddJob({
           status: editJob.Status.id,
           salaryRange: editJob.salaryRange,
           jobDescription: editJob.description,
-          jobUrl: editJob.jobUrl ?? undefined,
-          resume: editJob.Resume?.id ?? undefined,
+          jobUrl: editJob.jobUrl ?? "",
+          resume: editJob.Resume?.id ?? "",
           tags: editJob.tags?.map((t) => t.id) ?? [],
         },
         { keepDefaultValues: true },
@@ -322,6 +325,28 @@ export function AddJob({
                   />
                 </div>
 
+                {/* Job Title */}
+                <div className="md:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Job Title</FormLabel>
+                        <FormControl>
+                          <Combobox
+                            options={jobTitleOptions}
+                            field={field}
+                            creatable
+                            onOptionsChange={setJobTitleOptions}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 {/* Resume */}
                 <div className="md:col-span-2 flex items-end">
                   <FormField
@@ -362,32 +387,9 @@ export function AddJob({
                     type="button"
                   >
                     <span>Advanced job details</span>
-                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-200" />
+                    <ChevronDown className="ml-auto h-4 w-4 shrink-0 transition-transform duration-300 ease-in-out" />
                   </CollapsibleTrigger>
                   <CollapsibleContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
-                    {/* Job Title */}
-                    <div>
-                      <FormField
-                        control={form.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-col">
-                            <FormLabel>
-                              <OptionalLabel>Job Title</OptionalLabel>
-                            </FormLabel>
-                            <FormControl>
-                              <Combobox
-                                options={jobTitleOptions}
-                                field={field}
-                                creatable
-                                onOptionsChange={setJobTitleOptions}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
                     {/* Company */}
                     <div>
                       <FormField

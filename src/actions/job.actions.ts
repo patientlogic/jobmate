@@ -399,24 +399,6 @@ export const createJobSource = async (
 
 const PLACEHOLDER_CATALOG_VALUE = "not-specified";
 
-async function getOrCreatePlaceholderJobTitle(userId: string): Promise<string> {
-  const existing = await prisma.jobTitle.findFirst({
-    where: { value: PLACEHOLDER_CATALOG_VALUE, createdBy: userId },
-  });
-  if (existing) {
-    return existing.id;
-  }
-
-  const created = await prisma.jobTitle.create({
-    data: {
-      label: "Not specified",
-      value: PLACEHOLDER_CATALOG_VALUE,
-      createdBy: userId,
-    },
-  });
-  return created.id;
-}
-
 async function getOrCreatePlaceholderCompany(userId: string): Promise<string> {
   const existing = await prisma.company.findFirst({
     where: { value: PLACEHOLDER_CATALOG_VALUE, createdBy: userId },
@@ -473,7 +455,7 @@ export const addJob = async (
     } = data;
 
     const tagIds = tags ?? [];
-    const jobTitleId = title || (await getOrCreatePlaceholderJobTitle(ownerId));
+    const jobTitleId = title;
     const companyId = company || (await getOrCreatePlaceholderCompany(ownerId));
     const statusId = await resolveDefaultStatusId(status);
     const jobType = type || Object.keys(JOB_TYPES)[0];
